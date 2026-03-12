@@ -201,7 +201,7 @@ export default function LeagueHubPage() {
 
         {/* Loading state */}
         {loading && (
-          <div className="grid-sidebar" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 24 }}>
+          <div className="grid-sidebar">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2].map(i => (
                 <div key={i} style={{
@@ -251,7 +251,7 @@ export default function LeagueHubPage() {
 
         {/* Main content */}
         {!loading && leagues.length > 0 && activeLeague && (
-          <div className="grid-sidebar" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 24 }}>
+          <div className="grid-sidebar">
 
             {/* LEFT — league list */}
             <div>
