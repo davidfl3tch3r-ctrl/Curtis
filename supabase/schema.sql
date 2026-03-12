@@ -234,6 +234,13 @@ alter table public.matchups enable row level security;
 
 -- CREDITS (added to teams)
 -- alter table public.teams add column if not exists credits int default 100;
+
+-- PYRAMID (added to leagues)
+-- alter table public.leagues add column if not exists tier int default 1;
+-- alter table public.leagues add column if not exists pyramid_group text;
+-- tier: 1=Regional League, 2=National League, 3=League Two, 4=League One, 5=Championship, 6=Curtis Elite
+-- pyramid_group: e.g., 'A', 'B', 'C' for multiple groups within a tier
+
 -- Run the migration SQL below instead of re-running the full schema.
 
 -- WAIVER BIDS

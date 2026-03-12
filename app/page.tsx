@@ -145,8 +145,9 @@ export default function LeagueHubPage() {
         { label: "Trades",   href: `/leagues/${activeLeague.id}/trades` },
         { label: "Chat",     href: `/leagues/${activeLeague.id}/chat` },
         { label: "Messages", href: `/leagues/${activeLeague.id}/messages` },
+        { label: "Pyramid",  href: "/pyramid" },
       ]
-    : [{ label: "Home", href: "/" }];
+    : [{ label: "Home", href: "/" }, { label: "Pyramid", href: "/pyramid" }];
 
   const gap =
     activeLeague && activeLeague.leaderPoints > activeLeague.myPoints
