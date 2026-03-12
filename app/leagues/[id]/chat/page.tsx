@@ -144,79 +144,158 @@ export default function LeagueChatPage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #A89880; text-decoration: none; transition: color 0.15s; }
         .nav-link:hover, .nav-link.active { color: #FF5A1F; }
-        .msg-bubble { max-width: 72%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-break: break-word; }
-        .msg-mine { background: #FF5A1F; color: white; border-bottom-right-radius: 4px; }
-        .msg-theirs { background: white; color: #1C1410; border: 1.5px solid #EDE5D8; border-bottom-left-radius: 4px; }
-        .chat-input { flex: 1; padding: 12px 16px; border: 1.5px solid #EDE5D8; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; resize: none; outline: none; background: white; transition: border-color 0.15s; color: #1C1410; }
+        .msg-bubble {
+          max-width: 68%;
+          padding: 12px 18px;
+          border-radius: 18px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 16px;
+          line-height: 1.55;
+          word-break: break-word;
+        }
+        .msg-mine {
+          background: #FF5A1F;
+          color: white;
+          border-bottom-right-radius: 5px;
+        }
+        .msg-theirs {
+          background: white;
+          color: #1C1410;
+          border: 1.5px solid #EDE5D8;
+          border-bottom-left-radius: 5px;
+        }
+        .chat-input {
+          flex: 1;
+          padding: 14px 18px;
+          border: 2px solid #EDE5D8;
+          border-radius: 14px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 16px;
+          resize: none;
+          outline: none;
+          background: white;
+          transition: border-color 0.15s;
+          color: #1C1410;
+          line-height: 1.5;
+        }
         .chat-input:focus { border-color: #FF5A1F; }
-        .send-btn { padding: 12px 20px; border-radius: 12px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.07em; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; }
-        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .send-btn:hover:not(:disabled) { opacity: 0.88; }
+        .chat-input::placeholder { color: #C4B8AA; }
+        .send-btn {
+          height: 52px;
+          padding: 0 28px;
+          border-radius: 14px;
+          border: none;
+          background: #FF5A1F;
+          color: white;
+          font-family: 'DM Mono', monospace;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.07em;
+          cursor: pointer;
+          transition: opacity 0.15s;
+          flex-shrink: 0;
+          align-self: flex-end;
+        }
+        .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .send-btn:hover:not(:disabled) { opacity: 0.85; }
+        .sender-name {
+          font-family: 'DM Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.05em;
+          color: #A89880;
+          margin-bottom: 4px;
+          font-weight: 600;
+        }
+        .sender-name-me { color: #FF5A1F; }
+        .msg-time {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: #C4B8AA;
+          margin-top: 4px;
+          letter-spacing: 0.03em;
+        }
       `}</style>
 
       {/* Nav */}
-      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 24px", height: 56, display: "flex", alignItems: "center", gap: 24, background: "white", flexShrink: 0 }}>
+      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 20px", height: 56, display: "flex", alignItems: "center", gap: 20, background: "white", flexShrink: 0 }}>
         <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F", flexShrink: 0 }}>CURTIS</span>
         {navLinks.map((l) => (
           <Link key={l.href} href={l.href} className={`nav-link${l.label === "Chat" ? " active" : ""}`}>{l.label}</Link>
         ))}
+        <span style={{ marginLeft: "auto", fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#1C1410", flexShrink: 0 }}>
+          {leagueName} · League Chat
+        </span>
       </nav>
 
-      {/* Header */}
-      <div style={{ padding: "16px 24px 12px", borderBottom: "1px solid #EDE5D8", background: "white", flexShrink: 0 }}>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89880", marginBottom: 2 }}>{leagueName}</p>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900 }}>League Chat</h1>
-      </div>
+      {/* Messages — flex:1, spacer at top pushes messages to bottom */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px", display: "flex", flexDirection: "column" }}>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Top spacer — forces messages to bottom when list is short */}
+        <div style={{ flex: 1 }} />
+
         {loading && (
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A89880", alignSelf: "center" }}>Loading…</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#A89880", alignSelf: "center", marginBottom: 24 }}>Loading…</p>
         )}
         {!loading && messages.length === 0 && (
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A89880", alignSelf: "center", marginTop: 40 }}>
-            No messages yet. Say something!
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#A89880", alignSelf: "center", marginBottom: 24 }}>
+            No messages yet — say something!
           </p>
         )}
 
         {messages.map((msg, i) => {
           const isMe = msg.sender_id === myUserId;
           const prevMsg = messages[i - 1];
-          const showSender = !isMe && (!prevMsg || prevMsg.sender_id !== msg.sender_id);
+          const isNewGroup = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+          const senderName = isMe ? (myUsername || "You") : (msg.sender?.username ?? "Unknown");
 
           return (
-            <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
-              {showSender && (
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880", marginBottom: 3, letterSpacing: "0.06em" }}>
-                  {msg.sender?.username ?? "Unknown"}
+            <div
+              key={msg.id}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: isMe ? "flex-end" : "flex-start",
+                marginTop: isNewGroup ? 20 : 6,
+              }}
+            >
+              {isNewGroup && (
+                <span className={`sender-name${isMe ? " sender-name-me" : ""}`}>
+                  {senderName}
                 </span>
               )}
               <div className={`msg-bubble ${isMe ? "msg-mine" : "msg-theirs"}`}>
                 {msg.body}
               </div>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#C4B8AA", marginTop: 3, letterSpacing: "0.04em" }}>
-                {formatTime(msg.created_at)}
-              </span>
+              <span className="msg-time">{formatTime(msg.created_at)}</span>
             </div>
           );
         })}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div style={{ padding: "12px 24px 20px", borderTop: "1px solid #EDE5D8", background: "white", display: "flex", gap: 10, alignItems: "flex-end", flexShrink: 0 }}>
+      {/* Input bar — fixed at bottom */}
+      <div style={{
+        padding: "16px 32px 24px",
+        borderTop: "1.5px solid #EDE5D8",
+        background: "white",
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-end",
+        flexShrink: 0,
+      }}>
         <textarea
           ref={inputRef}
           className="chat-input"
           rows={1}
-          placeholder="Message the league… (Enter to send, Shift+Enter for new line)"
+          placeholder="Message the league…  (Enter to send · Shift+Enter for new line)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          style={{ minHeight: 46, maxHeight: 120 }}
+          style={{ minHeight: 52, maxHeight: 140 }}
         />
         <button onClick={send} disabled={!input.trim() || sending} className="send-btn">
-          Send
+          {sending ? "…" : "Send"}
         </button>
       </div>
     </div>
