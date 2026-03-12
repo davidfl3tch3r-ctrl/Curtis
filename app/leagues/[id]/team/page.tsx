@@ -124,12 +124,13 @@ function getNextLockout(): Date {
 }
 
 function useCountdown(target: Date) {
-  const [diff, setDiff] = useState(target.getTime() - Date.now());
+  const [diff, setDiff] = useState<number | null>(null);
   useEffect(() => {
+    setDiff(target.getTime() - Date.now());
     const t = setInterval(() => setDiff(target.getTime() - Date.now()), 1000);
     return () => clearInterval(t);
   }, [target]);
-  if (diff <= 0) return null;
+  if (diff === null || diff <= 0) return null;
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
