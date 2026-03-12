@@ -73,15 +73,15 @@ export default function WaiversPage() {
     if (league) setLeagueName(league.name);
     if (gw) { setGameweekId(gw.id); setGameweekName(gw.name); }
 
-    // Fetch team separately so errors are visible
+    // Fetch team — select * avoids schema-cache failures on newer columns like credits
     const { data: myTeamRow, error: teamErr } = await supabase
       .from("teams")
-      .select("id, credits")
+      .select("*")
       .eq("league_id", leagueId)
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (teamErr) console.error("team fetch error:", teamErr);
+    if (teamErr) console.error("team fetch error:", teamErr?.message ?? JSON.stringify(teamErr));
     if (myTeamRow) {
       setMyTeamId(myTeamRow.id);
       setMyCredits(myTeamRow.credits ?? 0);
