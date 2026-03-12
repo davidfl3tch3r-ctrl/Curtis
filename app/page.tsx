@@ -164,6 +164,7 @@ export default function LeagueHubPage() {
   const navLinks = activeLeague
     ? [
         { label: "Home", href: "/" },
+        { label: "My Team", href: `/leagues/${activeLeague.id}/team` },
         { label: "Draft", href: `/leagues/${activeLeague.id}/draft` },
         { label: "Scoring", href: `/leagues/${activeLeague.id}/scoring` },
         { label: "Live", href: `/leagues/${activeLeague.id}/live` },

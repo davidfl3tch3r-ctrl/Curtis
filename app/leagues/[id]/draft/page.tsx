@@ -565,6 +565,7 @@ export default function DraftRoomPage() {
 
   const navLinks = [
     { label: "Leagues",  href: "/" },
+    { label: "My Team",  href: `/leagues/${leagueId}/team` },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
     { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },

@@ -173,6 +173,7 @@ export default function WaiversPage() {
   const filtered = posFilter === "ALL" ? available : available.filter((p) => p.position === posFilter);
   const navLinks = [
     { label: "Home",     href: "/" },
+    { label: "My Team",  href: `/leagues/${leagueId}/team` },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
     { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },

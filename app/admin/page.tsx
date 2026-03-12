@@ -1366,9 +1366,81 @@ function SectionHeader({
   );
 }
 
+// ─── Section: Testing ─────────────────────────────────────────────────────────
+
+function SectionTesting() {
+  const [seeding, setSeeding] = useState(false);
+  const [result, setResult] = useState<{ success?: boolean; message?: string; leagueId?: string; error?: string } | null>(null);
+
+  async function seedTestLeague() {
+    if (!confirm("Create \"The Gaffer's League\" with 8 teams?")) return;
+    setSeeding(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/seed-test-league", { method: "POST" });
+      const d = await res.json();
+      setResult(d);
+    } catch {
+      setResult({ error: "Network error" });
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  return (
+    <div>
+      <SectionHeader title="Testing" subtitle="Seed data and test utilities for development" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 560 }}>
+        {/* Seed test league */}
+        <div style={{ background: "var(--c-bg-elevated)", border: "1.5px solid var(--c-border-strong)", borderRadius: 12, padding: "20px 22px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+            <span style={{ fontSize: 28 }}>🌱</span>
+            <div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--c-text)", marginBottom: 4 }}>Seed Test League</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.5 }}>
+                Creates &ldquo;The Gaffer&apos;s League&rdquo; with 8 teams: your team (Dave&apos;s Destroyers) plus 7 bot teams including Klopp&apos;s Gegenpressers, Pep&apos;s Philosophers, and more.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={seedTestLeague}
+            disabled={seeding}
+            style={{
+              padding: "10px 20px", borderRadius: 9,
+              background: seeding ? "var(--c-skeleton)" : "#16A34A",
+              color: "white", border: "none",
+              fontFamily: "'DM Mono', monospace", fontSize: 11,
+              letterSpacing: "0.08em", cursor: seeding ? "not-allowed" : "pointer",
+              opacity: seeding ? 0.6 : 1,
+            }}
+          >
+            {seeding ? "Creating…" : "🌱 Seed Test League"}
+          </button>
+          {result && (
+            <div style={{
+              marginTop: 14, padding: "10px 14px", borderRadius: 8,
+              background: result.error ? "rgba(220,38,38,0.06)" : "rgba(22,163,74,0.06)",
+              border: `1px solid ${result.error ? "rgba(220,38,38,0.2)" : "rgba(22,163,74,0.2)"}`,
+            }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: result.error ? "#DC2626" : "#16A34A", letterSpacing: "0.04em", marginBottom: result.leagueId ? 4 : 0 }}>
+                {result.error ?? result.message}
+              </p>
+              {result.leagueId && (
+                <a href={`/leagues/${result.leagueId}/draft`} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#FF5A1F", textDecoration: "none", letterSpacing: "0.04em" }}>
+                  → Open Draft Room
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
-type Tab = "leagues" | "users" | "players" | "database" | "api" | "danger";
+type Tab = "leagues" | "users" | "players" | "database" | "api" | "danger" | "testing";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -1426,6 +1498,7 @@ export default function AdminPage() {
     { id: "players", label: "Players" },
     { id: "database", label: "Database" },
     { id: "api", label: "API" },
+    { id: "testing" as Tab, label: "🌱 Testing" },
     ...(myRole === "admin" ? [{ id: "danger" as Tab, label: "Danger Zone" }] : []),
   ];
 
@@ -1525,6 +1598,7 @@ export default function AdminPage() {
         {activeTab === "players" && <SectionPlayers />}
         {activeTab === "database" && <SectionDatabase />}
         {activeTab === "api" && <SectionApi />}
+        {activeTab === "testing" && <SectionTesting />}
         {activeTab === "danger" && myRole === "admin" && <SectionDanger />}
       </main>
     </div>

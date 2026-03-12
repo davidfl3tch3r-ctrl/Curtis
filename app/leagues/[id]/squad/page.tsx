@@ -423,6 +423,7 @@ export default function SquadPage() {
 
   const navLinks = [
     { label: "Home",     href: "/" },
+    { label: "My Team",  href: `/leagues/${id}/team` },
     { label: "Draft",    href: `/leagues/${id}/draft` },
     { label: "Scoring",  href: `/leagues/${id}/scoring` },
     { label: "Live",     href: `/leagues/${id}/live` },

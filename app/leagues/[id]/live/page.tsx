@@ -260,6 +260,7 @@ export default function LiveScoringPage() {
 
   const navLinks = [
     { label: "Home",     href: "/" },
+    { label: "My Team",  href: `/leagues/${leagueId}/team` },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
     { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },

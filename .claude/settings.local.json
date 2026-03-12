@@ -67,7 +67,9 @@
       "Bash(grep -n '#[0-9A-Fa-f]\\\\{3,6\\\\}' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/scoring/page.tsx | grep -v '#FF5A1F\\\\|#E8400A\\\\|#C43000\\\\|#16A34A\\\\|#15803D\\\\|#B91C1C\\\\|#166534\\\\|#FDDCCC\\\\|#FFF1EC\\\\|#EDFAF3\\\\|#FFFBEB\\\\|#F7F4EF\\\\|#FEF2F2\\\\|#2D6A4F\\\\|#D97706\\\\|#7C6F5B\\\\|#991B1B')",
       "Bash(for f:*)",
       "Bash(grep -l \"var\\(--c-bg\\)\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/chat/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/messages/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/join/[code]/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx 2>&1)",
-      "Bash(wc -l /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/mock-draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/live/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/waivers/page.tsx)"
+      "Bash(wc -l /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/mock-draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/live/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/waivers/page.tsx)",
+      "Bash(grep -n \"label.*Chat.*href.*chat\\\\|Chat.*href.*chat\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/live/page.tsx | head -3)",
+      "Bash(grep -n \"label.*Home\\\\|label.*Draft\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/draft/page.tsx | head -6)"
     ]
   }
 }

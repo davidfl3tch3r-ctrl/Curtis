@@ -48,25 +48,27 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: isMobile ? "28px" : "36px",
-            fontWeight: 900,
-            letterSpacing: "0.08em",
-            color: "var(--c-text)",
-          }}>
-            CURTIS
-          </div>
-          <div style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: "11px",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--c-text-muted)",
-            marginTop: "6px",
-          }}>
-            Draft Football
-          </div>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: isMobile ? "28px" : "36px",
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              color: "var(--c-text)",
+            }}>
+              CURTIS
+            </div>
+            <div style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "11px",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--c-text-muted)",
+              marginTop: "6px",
+            }}>
+              Draft Football
+            </div>
+          </Link>
         </div>
 
         {/* Card */}
