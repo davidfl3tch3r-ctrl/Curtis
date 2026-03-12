@@ -65,15 +65,27 @@ export default function WaiversPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [{ data: league }, { data: myTeamRow }, { data: gw }] = await Promise.all([
+    const [{ data: league }, { data: gw }] = await Promise.all([
       supabase.from("leagues").select("name").eq("id", leagueId).single(),
-      supabase.from("teams").select("id, credits").eq("league_id", leagueId).eq("user_id", user.id).single(),
-      supabase.from("gameweeks").select("id, name").in("status", ["live", "upcoming"]).order("number").limit(1).single(),
+      supabase.from("gameweeks").select("id, name").in("status", ["live", "upcoming"]).order("number").limit(1).maybeSingle(),
     ]);
 
     if (league) setLeagueName(league.name);
-    if (myTeamRow) { setMyTeamId(myTeamRow.id); setMyCredits(myTeamRow.credits ?? 0); }
     if (gw) { setGameweekId(gw.id); setGameweekName(gw.name); }
+
+    // Fetch team separately so errors are visible
+    const { data: myTeamRow, error: teamErr } = await supabase
+      .from("teams")
+      .select("id, credits")
+      .eq("league_id", leagueId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (teamErr) console.error("team fetch error:", teamErr);
+    if (myTeamRow) {
+      setMyTeamId(myTeamRow.id);
+      setMyCredits(myTeamRow.credits ?? 0);
+    }
 
     // Players owned in this league
     const { data: leagueTeams } = await supabase.from("teams").select("id").eq("league_id", leagueId);
