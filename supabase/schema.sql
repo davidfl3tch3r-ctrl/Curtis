@@ -229,8 +229,80 @@ create table public.matchups (
 );
 alter table public.matchups enable row level security;
 
--- ENABLE REALTIME (for live draft + live scoring)
+-- CREDITS (added to teams)
+-- alter table public.teams add column if not exists credits int default 100;
+-- Run the migration SQL below instead of re-running the full schema.
+
+-- WAIVER BIDS
+create table public.waiver_bids (
+  id             uuid default uuid_generate_v4() primary key,
+  league_id      uuid references public.leagues(id) on delete cascade,
+  team_id        uuid references public.teams(id) on delete cascade,
+  player_id      text references public.players(id),
+  drop_player_id text references public.players(id),
+  bid_amount     int  not null default 0,
+  gameweek_id    uuid references public.gameweeks(id),
+  status         text check (status in ('pending','won','lost','cancelled')) default 'pending',
+  created_at     timestamptz default now(),
+  processed_at   timestamptz
+);
+alter table public.waiver_bids enable row level security;
+create policy "Own team bids visible" on public.waiver_bids
+  for select to authenticated
+  using (team_id in (select id from public.teams where user_id = auth.uid()));
+create policy "All processed bids visible" on public.waiver_bids
+  for select to authenticated
+  using (status != 'pending');
+create policy "Users can manage own team bids" on public.waiver_bids
+  for all to authenticated
+  using (team_id in (select id from public.teams where user_id = auth.uid()))
+  with check (team_id in (select id from public.teams where user_id = auth.uid()));
+
+-- TRADES
+create table public.trades (
+  id                uuid default uuid_generate_v4() primary key,
+  league_id         uuid references public.leagues(id) on delete cascade,
+  proposing_team_id uuid references public.teams(id),
+  receiving_team_id uuid references public.teams(id),
+  status            text check (status in ('pending','accepted','rejected','countered','cancelled','expired')) default 'pending',
+  message           text,
+  parent_trade_id   uuid references public.trades(id),
+  created_at        timestamptz default now(),
+  responded_at      timestamptz,
+  expires_at        timestamptz default now() + interval '3 days'
+);
+alter table public.trades enable row level security;
+create policy "Trades visible to involved teams" on public.trades
+  for select to authenticated
+  using (
+    proposing_team_id in (select id from public.teams where user_id = auth.uid())
+    or receiving_team_id in (select id from public.teams where user_id = auth.uid())
+  );
+create policy "Users can propose trades" on public.trades
+  for insert to authenticated
+  with check (proposing_team_id in (select id from public.teams where user_id = auth.uid()));
+
+-- TRADE ITEMS
+create table public.trade_items (
+  id           uuid default uuid_generate_v4() primary key,
+  trade_id     uuid references public.trades(id) on delete cascade,
+  player_id    text references public.players(id),
+  from_team_id uuid references public.teams(id),
+  to_team_id   uuid references public.teams(id)
+);
+alter table public.trade_items enable row level security;
+create policy "Trade items visible to involved teams" on public.trade_items
+  for select to authenticated
+  using (trade_id in (
+    select id from public.trades where
+      proposing_team_id in (select id from public.teams where user_id = auth.uid())
+      or receiving_team_id in (select id from public.teams where user_id = auth.uid())
+  ));
+
+-- ENABLE REALTIME (for live draft + live scoring + trades)
 alter publication supabase_realtime add table public.draft_picks;
 alter publication supabase_realtime add table public.player_stats;
 alter publication supabase_realtime add table public.fixtures;
 alter publication supabase_realtime add table public.matchups;
+alter publication supabase_realtime add table public.trades;
+alter publication supabase_realtime add table public.waiver_bids;
