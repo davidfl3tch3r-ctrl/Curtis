@@ -141,8 +141,10 @@ export default function LeagueHubPage() {
         { label: "Scoring", href: `/leagues/${activeLeague.id}/scoring` },
         { label: "Live", href: `/leagues/${activeLeague.id}/live` },
         { label: "Stats", href: `/leagues/${activeLeague.id}/table` },
-        { label: "Waivers", href: `/leagues/${activeLeague.id}/waivers` },
-        { label: "Trades", href: `/leagues/${activeLeague.id}/trades` },
+        { label: "Waivers",  href: `/leagues/${activeLeague.id}/waivers` },
+        { label: "Trades",   href: `/leagues/${activeLeague.id}/trades` },
+        { label: "Chat",     href: `/leagues/${activeLeague.id}/chat` },
+        { label: "Messages", href: `/leagues/${activeLeague.id}/messages` },
       ]
     : [{ label: "Home", href: "/" }];
 

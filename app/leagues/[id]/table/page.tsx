@@ -112,12 +112,14 @@ export default function LeagueTablePage() {
   }, [leagueId]);
 
   const navLinks = [
-    { label: "Leagues", href: "/" },
-    { label: "Draft",   href: `/leagues/${leagueId}/draft` },
-    { label: "Live",    href: `/leagues/${leagueId}/live` },
-    { label: "Table",   href: `/leagues/${leagueId}/table` },
-    { label: "Waivers", href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",  href: `/leagues/${leagueId}/trades` },
+    { label: "Leagues",  href: "/" },
+    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Live",     href: `/leagues/${leagueId}/live` },
+    { label: "Table",    href: `/leagues/${leagueId}/table` },
+    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
+    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
+    { label: "Messages", href: `/leagues/${leagueId}/messages` },
   ];
 
   return (

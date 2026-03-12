@@ -201,12 +201,14 @@ export default function TradesPage() {
   const incoming = trades.filter((t) => t.receiving_team_id === myTeam?.id);
   const outgoing = trades.filter((t) => t.proposing_team_id === myTeam?.id);
   const navLinks = [
-    { label: "Home", href: "/" },
-    { label: "Draft", href: `/leagues/${leagueId}/draft` },
-    { label: "Live", href: `/leagues/${leagueId}/live` },
-    { label: "Table", href: `/leagues/${leagueId}/table` },
-    { label: "Waivers", href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades", href: `/leagues/${leagueId}/trades` },
+    { label: "Home",     href: "/" },
+    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Live",     href: `/leagues/${leagueId}/live` },
+    { label: "Table",    href: `/leagues/${leagueId}/table` },
+    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
+    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
+    { label: "Messages", href: `/leagues/${leagueId}/messages` },
   ];
 
   return (

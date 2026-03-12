@@ -5,6 +5,120 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
+// ─── DRAFT CHAT ───────────────────────────────────────────────────────────────
+
+type ChatMessage = { id: string; sender_id: string; body: string; created_at: string; senderName: string };
+
+function DraftChat({ leagueId, myUserId }: { leagueId: string; myUserId: string | null }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let mounted = true;
+
+    supabase
+      .from("messages")
+      .select("id, sender_id, body, created_at, sender:profiles!sender_id(username)")
+      .eq("league_id", leagueId)
+      .eq("type", "draft")
+      .order("created_at", { ascending: true })
+      .limit(100)
+      .then(({ data }) => {
+        if (!mounted || !data) return;
+        setMessages(data.map((m: any) => ({ ...m, senderName: m.sender?.username ?? "?" })));
+      });
+
+    const channel = supabase
+      .channel(`draft-chat-${leagueId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `league_id=eq.${leagueId}` }, async (payload) => {
+        const row = payload.new as any;
+        if (row.type !== "draft") return;
+        const { data: profile } = await supabase.from("profiles").select("username").eq("id", row.sender_id).single();
+        const msg: ChatMessage = { ...row, senderName: profile?.username ?? "?" };
+        setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+      })
+      .subscribe();
+
+    return () => { mounted = false; supabase.removeChannel(channel); };
+  }, [leagueId]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  async function send() {
+    const body = input.trim();
+    if (!body || !myUserId || sending) return;
+    setSending(true);
+    setInput("");
+    const supabase = createClient();
+    await supabase.from("messages").insert({ league_id: leagueId, sender_id: myUserId, type: "draft", body });
+    setSending(false);
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+      {/* Message list */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+        {messages.length === 0 && (
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4A3E34", alignSelf: "center", marginTop: 20, letterSpacing: "0.06em" }}>Draft room chat</p>
+        )}
+        {messages.map((msg, i) => {
+          const isMe = msg.sender_id === myUserId;
+          const showName = !isMe && (i === 0 || messages[i - 1].sender_id !== msg.sender_id);
+          return (
+            <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+              {showName && (
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#6B5E52", marginBottom: 2, letterSpacing: "0.05em" }}>{msg.senderName}</span>
+              )}
+              <div style={{
+                maxWidth: "85%", padding: "7px 11px", borderRadius: 10, fontSize: 12, lineHeight: 1.45, wordBreak: "break-word",
+                background: isMe ? "#FF5A1F" : "rgba(255,255,255,0.07)",
+                color: isMe ? "white" : "#F5F0E8",
+                border: isMe ? "none" : "1px solid rgba(255,255,255,0.08)",
+                borderBottomRightRadius: isMe ? 3 : 10,
+                borderBottomLeftRadius: isMe ? 10 : 3,
+              }}>
+                {msg.body}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: "8px 10px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8, flexShrink: 0 }}>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
+          placeholder="Say something…"
+          disabled={!myUserId}
+          style={{
+            flex: 1, padding: "8px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 8, color: "#F5F0E8", fontFamily: "'DM Sans', sans-serif", fontSize: 12, outline: "none",
+          }}
+        />
+        <button
+          onClick={send}
+          disabled={!input.trim() || sending || !myUserId}
+          style={{
+            padding: "8px 14px", borderRadius: 8, border: "none", background: "#FF5A1F", color: "white",
+            fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.06em", cursor: "pointer", opacity: (!input.trim() || sending) ? 0.4 : 1,
+          }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 type DBPlayer = {
@@ -186,6 +300,7 @@ export default function DraftRoomPage() {
   const [lastPick, setLastPick] = useState<{ player: DBPlayer; teamId: string } | null>(null);
   const [boardView, setBoardView] = useState("board");
   const [saving, setSaving] = useState(false);
+  const [rightPanel, setRightPanel] = useState<"squad" | "chat">("squad");
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playersRef = useRef<DBPlayer[]>([]);
@@ -444,13 +559,15 @@ export default function DraftRoomPage() {
   }).filter(Boolean) as Array<{ pickNum: number; team: DBTeam; isMe: boolean }>;
 
   const navLinks = [
-    { label: "Leagues", href: "/" },
-    { label: "Draft",   href: `/leagues/${leagueId}/draft` },
-    { label: "Scoring", href: `/leagues/${leagueId}/scoring` },
-    { label: "Live",    href: `/leagues/${leagueId}/live` },
-    { label: "Stats",   href: `/leagues/${leagueId}/table` },
-    { label: "Waivers", href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",  href: `/leagues/${leagueId}/trades` },
+    { label: "Leagues",  href: "/" },
+    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
+    { label: "Live",     href: `/leagues/${leagueId}/live` },
+    { label: "Stats",    href: `/leagues/${leagueId}/table` },
+    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
+    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
+    { label: "Messages", href: `/leagues/${leagueId}/messages` },
   ];
 
   const pickTime = league?.pick_time_seconds ?? 60;
@@ -1057,10 +1174,29 @@ export default function DraftRoomPage() {
           </div>
         </div>
 
-        {/* RIGHT — My Squad + Last Pick Toast */}
+        {/* RIGHT — Squad / Chat panel */}
         <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "#0D0B09" }}>
 
-          {/* Last pick toast */}
+          {/* Panel tab toggle */}
+          <div style={{ display: "flex", gap: 2, padding: "8px 10px 0", flexShrink: 0 }}>
+            {(["squad", "chat"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setRightPanel(p)}
+                style={{
+                  fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.08em",
+                  textTransform: "uppercase", padding: "6px 14px", borderRadius: 7, border: "none",
+                  cursor: "pointer", transition: "all 0.15s",
+                  background: rightPanel === p ? "rgba(255,90,31,0.15)" : "transparent",
+                  color: rightPanel === p ? "#FF5A1F" : "#6B5E52",
+                }}
+              >
+                {p === "squad" ? "My Squad" : "💬 Chat"}
+              </button>
+            ))}
+          </div>
+
+          {/* Last pick toast — always visible */}
           {lastPick && (
             <div className="last-pick-toast" style={{
               margin: "10px 14px 0", padding: "10px 14px", borderRadius: 10,
@@ -1080,7 +1216,9 @@ export default function DraftRoomPage() {
             </div>
           )}
 
-          {/* My Squad */}
+          {/* My Squad — only when squad tab active */}
+          {rightPanel === "chat" && <DraftChat leagueId={leagueId} myUserId={currentUserId} />}
+          <div style={{ display: rightPanel === "squad" ? "contents" : "none" }}>
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 0" }}>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 10 }}>
               {myTeam ? `${myTeam.name} (${myPicks.length} / ${totalRounds})` : "Not in this league"}
@@ -1139,6 +1277,7 @@ export default function DraftRoomPage() {
               </button>
             </div>
           )}
+          </div>{/* end squad panel wrapper */}
         </div>
       </div>
     </div>
