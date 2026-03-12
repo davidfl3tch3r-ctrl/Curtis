@@ -275,7 +275,10 @@ export default function LeagueHubPage() {
               <span style={{ fontStyle: "italic", color: "#FF5A1F" }}>{greeting}.</span>
             </h1>
           </div>
-          <button className="new-btn" onClick={() => router.push("/leagues/new")}>+ New League</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="new-btn" style={{ background: "transparent", border: "1.5px solid #EDE5D8", color: "#1C1410" }} onClick={() => router.push("/draft/queue")}>Join Public Draft</button>
+            <button className="new-btn" onClick={() => router.push("/leagues/new")}>+ New League</button>
+          </div>
         </div>
 
         {/* Loading state */}
