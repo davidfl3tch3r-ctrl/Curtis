@@ -4,9 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { OAuthButtons } from "@/components/OAuthButtons";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 export default function SignupPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,9 +52,9 @@ export default function SignupPage() {
     padding: "10px 12px",
     fontFamily: "'DM Sans', sans-serif",
     fontSize: "15px",
-    color: "#1C1410",
-    background: "#FAF7F2",
-    border: "1px solid #E8E0D8",
+    color: "var(--c-text)" as string,
+    background: "var(--c-input)" as string,
+    border: "1px solid var(--c-input-border)" as string,
     borderRadius: "8px",
     outline: "none",
     boxSizing: "border-box",
@@ -62,29 +66,31 @@ export default function SignupPage() {
     fontSize: "11px",
     letterSpacing: "0.1em",
     textTransform: "uppercase",
-    color: "#9C8A7A",
+    color: "var(--c-text-muted)" as string,
     marginBottom: "8px",
   };
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#FAF7F2",
+      background: "var(--c-bg)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       padding: "24px",
+      position: "relative",
     }}>
+      <div style={{ position: "absolute", top: 16, right: 16 }}><ThemeToggle /></div>
       <div style={{ width: "100%", maxWidth: "400px" }}>
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: "36px",
+            fontSize: isMobile ? "28px" : "36px",
             fontWeight: 900,
             letterSpacing: "0.08em",
-            color: "#1C1410",
+            color: "var(--c-text)",
           }}>
             CURTIS
           </div>
@@ -93,7 +99,7 @@ export default function SignupPage() {
             fontSize: "11px",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "#9C8A7A",
+            color: "var(--c-text-muted)",
             marginTop: "6px",
           }}>
             Draft Football
@@ -102,10 +108,10 @@ export default function SignupPage() {
 
         {/* Card */}
         <div style={{
-          background: "#FFFFFF",
+          background: "var(--c-bg-elevated)",
           borderRadius: "12px",
-          padding: "36px",
-          border: "1px solid #E8E0D8",
+          padding: isMobile ? "24px 20px" : "36px",
+          border: "1px solid var(--c-border-strong)",
         }}>
           {confirmEmail ? (
             <div style={{ textAlign: "center" }}>
@@ -114,7 +120,7 @@ export default function SignupPage() {
                 fontFamily: "'Playfair Display', serif",
                 fontSize: "22px",
                 fontWeight: 700,
-                color: "#1C1410",
+                color: "var(--c-text)",
                 margin: "0 0 12px 0",
               }}>
                 Check your email
@@ -122,11 +128,11 @@ export default function SignupPage() {
               <p style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: "14px",
-                color: "#9C8A7A",
+                color: "var(--c-text-muted)",
                 lineHeight: 1.6,
                 margin: 0,
               }}>
-                We sent a confirmation link to <strong style={{ color: "#1C1410" }}>{email}</strong>. Click it to activate your account.
+                We sent a confirmation link to <strong style={{ color: "var(--c-text)" }}>{email}</strong>. Click it to activate your account.
               </p>
             </div>
           ) : (
@@ -135,11 +141,13 @@ export default function SignupPage() {
                 fontFamily: "'Playfair Display', serif",
                 fontSize: "24px",
                 fontWeight: 700,
-                color: "#1C1410",
-                margin: "0 0 28px 0",
+                color: "var(--c-text)",
+                margin: "0 0 24px 0",
               }}>
                 Create account
               </h1>
+
+              <OAuthButtons />
 
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: "16px" }}>
@@ -153,7 +161,7 @@ export default function SignupPage() {
                     placeholder="e.g. gaffer_dan"
                     style={inputStyle}
                     onFocus={(e) => (e.target.style.borderColor = "#FF5A1F")}
-                    onBlur={(e) => (e.target.style.borderColor = "#E8E0D8")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--c-input-border)")}
                   />
                 </div>
 
@@ -167,7 +175,7 @@ export default function SignupPage() {
                     autoComplete="email"
                     style={inputStyle}
                     onFocus={(e) => (e.target.style.borderColor = "#FF5A1F")}
-                    onBlur={(e) => (e.target.style.borderColor = "#E8E0D8")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--c-input-border)")}
                   />
                 </div>
 
@@ -182,12 +190,12 @@ export default function SignupPage() {
                     autoComplete="new-password"
                     style={inputStyle}
                     onFocus={(e) => (e.target.style.borderColor = "#FF5A1F")}
-                    onBlur={(e) => (e.target.style.borderColor = "#E8E0D8")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--c-input-border)")}
                   />
                   <div style={{
                     fontFamily: "'DM Mono', monospace",
                     fontSize: "10px",
-                    color: "#B8A898",
+                    color: "var(--c-text-dim)",
                     marginTop: "6px",
                     letterSpacing: "0.05em",
                   }}>
@@ -217,7 +225,7 @@ export default function SignupPage() {
                     width: "100%",
                     padding: "12px",
                     background: loading ? "#E8A88A" : "#FF5A1F",
-                    color: "#FFFFFF",
+                    color: "white",
                     border: "none",
                     borderRadius: "8px",
                     fontFamily: "'DM Sans', sans-serif",
@@ -225,6 +233,7 @@ export default function SignupPage() {
                     fontWeight: 600,
                     cursor: loading ? "not-allowed" : "pointer",
                     transition: "background 0.15s",
+                    minHeight: 44,
                   }}
                 >
                   {loading ? "Creating account…" : "Create account"}
@@ -239,7 +248,7 @@ export default function SignupPage() {
             textAlign: "center",
             fontFamily: "'DM Sans', sans-serif",
             fontSize: "14px",
-            color: "#9C8A7A",
+            color: "var(--c-text-muted)",
             marginTop: "20px",
           }}>
             Already have an account?{" "}

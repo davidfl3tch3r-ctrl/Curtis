@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 type Player = {
   id: string;
@@ -34,6 +37,7 @@ const POS_COLOR: Record<string, string> = {
 export default function WaiversPage() {
   const params = useParams();
   const leagueId = params.id as string;
+  const isMobile = useIsMobile();
 
   const [tab, setTab] = useState<"available" | "mybids">("available");
   const [loading, setLoading] = useState(true);
@@ -170,58 +174,54 @@ export default function WaiversPage() {
   const navLinks = [
     { label: "Home",     href: "/" },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Table",    href: `/leagues/${leagueId}/table` },
+    { label: "Stats",    href: `/leagues/${leagueId}/table` },
     { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
     { label: "Trades",   href: `/leagues/${leagueId}/trades` },
     { label: "Chat",     href: `/leagues/${leagueId}/chat` },
     { label: "Messages", href: `/leagues/${leagueId}/messages` },
   ];
 
+  const creditsDisplay = (
+    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text-muted)", whiteSpace: "nowrap" }}>
+      <span style={{ color: "#FF5A1F", fontWeight: 700 }}>{myCredits}</span> credits
+    </span>
+  );
+
   return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F2", color: "#1C1410" }}>
+    <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #A89880; text-decoration: none; transition: color 0.15s; }
-        .nav-link:hover, .nav-link.active { color: #FF5A1F; }
-        .tab-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; background: transparent; color: #A89880; }
+        .tab-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--c-text-muted); }
         .tab-btn.active { background: #FF5A1F; color: white; }
-        .player-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: white; border-radius: 10px; border: 1.5px solid #EDE5D8; transition: border-color 0.15s; }
+        .player-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--c-bg-elevated); border-radius: 10px; border: 1.5px solid var(--c-border-strong); transition: border-color 0.15s; }
         .player-row:hover { border-color: #FF5A1F; }
-        .bid-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 6px 14px; border-radius: 7px; border: 1.5px solid #FF5A1F; background: white; color: #FF5A1F; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+        .bid-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 6px 14px; border-radius: 7px; border: 1.5px solid #FF5A1F; background: var(--c-bg-elevated); color: #FF5A1F; cursor: pointer; white-space: nowrap; transition: all 0.15s; min-height: 44px; }
         .bid-btn:hover { background: #FF5A1F; color: white; }
         .pos-badge { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; color: white; flex-shrink: 0; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-        .modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; }
-        .input { width: 100%; padding: 10px 14px; border: 1.5px solid #EDE5D8; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; }
+        .modal { background: var(--c-bg-elevated); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; }
+        .input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--c-input-border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; background: var(--c-input); color: var(--c-text); }
         .input:focus { border-color: #FF5A1F; }
-        .primary-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; }
+        .primary-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; min-height: 44px; }
         .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .status-badge { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
-        .filter-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.07em; padding: 5px 12px; border-radius: 6px; border: 1.5px solid #EDE5D8; background: white; cursor: pointer; transition: all 0.15s; color: #A89880; }
-        .filter-btn.active { border-color: #FF5A1F; color: #FF5A1F; background: #FFF5F0; }
+        .filter-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.07em; padding: 5px 12px; border-radius: 6px; border: 1.5px solid var(--c-border-strong); background: var(--c-bg-elevated); cursor: pointer; transition: all 0.15s; color: var(--c-text-muted); min-height: 44px; }
+        .filter-btn.active { border-color: #FF5A1F; color: #FF5A1F; background: var(--c-accent-dim); }
       `}</style>
 
-      {/* Nav */}
-      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 24px", height: 56, display: "flex", alignItems: "center", gap: 28, background: "white" }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F" }}>CURTIS</span>
-        {navLinks.map((l) => (
-          <Link key={l.href} href={l.href} className={`nav-link${l.href.includes("waivers") ? " active" : ""}`}>{l.label}</Link>
-        ))}
-        <div style={{ marginLeft: "auto", fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A89880" }}>
-          <span style={{ color: "#FF5A1F", fontWeight: 700 }}>{myCredits}</span> credits
-        </div>
-      </nav>
+      <NavBar links={navLinks} activeLabel="Waivers" right={<>{creditsDisplay}<ThemeToggle size="sm" /></>} />
 
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "20px 16px" : "32px 24px" }}>
         <div style={{ marginBottom: 24 }}>
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.09em", textTransform: "uppercase", color: "#A89880", marginBottom: 4 }}>{leagueName} · {gameweekName}</p>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900 }}>Waiver Wire</h1>
-          <p style={{ color: "#6B5E52", fontSize: 13, marginTop: 4 }}>Bid credits to claim free agents. Highest bid wins — ties go to better waiver priority.</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 4 }}>{leagueName} · {gameweekName}</p>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 22 : 28, fontWeight: 900 }}>Waiver Wire</h1>
+          <p style={{ color: "var(--c-text-muted)", fontSize: 13, marginTop: 4 }}>Bid credits to claim free agents. Highest bid wins — ties go to better waiver priority.</p>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, background: "#F0EAE0", borderRadius: 10, padding: 4, marginBottom: 24, width: "fit-content" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--c-row)", borderRadius: 10, padding: 4, marginBottom: 24, width: "fit-content" }}>
           {(["available", "mybids"] as const).map((t) => (
             <button key={t} className={`tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
               {t === "available" ? "Available Players" : `My Bids${myBids.filter(b => b.status === "pending").length ? ` (${myBids.filter(b => b.status === "pending").length})` : ""}`}
@@ -230,11 +230,11 @@ export default function WaiversPage() {
         </div>
 
         {loading ? (
-          <div style={{ color: "#A89880", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>Loading…</div>
+          <div style={{ color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>Loading…</div>
         ) : tab === "available" ? (
           <>
             {/* Position filters */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
               {["ALL", "GK", "DEF", "MID", "FWD"].map((pos) => (
                 <button key={pos} className={`filter-btn${posFilter === pos ? " active" : ""}`} onClick={() => setPosFilter(pos)}>{pos}</button>
               ))}
@@ -242,18 +242,18 @@ export default function WaiversPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filtered.length === 0 && (
-                <p style={{ color: "#A89880", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>No available players.</p>
+                <p style={{ color: "var(--c-text-muted)", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>No available players.</p>
               )}
               {filtered.map((p) => (
                 <div key={p.id} className="player-row">
                   <span className="pos-badge" style={{ background: POS_COLOR[p.position] }}>{p.position}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                    <div style={{ fontSize: 12, color: "#A89880", fontFamily: "'DM Mono', monospace" }}>{p.club}</div>
+                    <div style={{ fontSize: 12, color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace" }}>{p.club}</div>
                   </div>
                   <div style={{ textAlign: "right", marginRight: 12 }}>
                     <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700 }}>{p.season_points} pts</div>
-                    <div style={{ fontSize: 11, color: "#A89880", fontFamily: "'DM Mono', monospace" }}>season</div>
+                    <div style={{ fontSize: 11, color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace" }}>season</div>
                   </div>
                   <button className="bid-btn" onClick={() => { setBidTarget(p); setBidAmount(0); setDropPlayerId(""); setBidError(""); }}>
                     Bid
@@ -266,7 +266,7 @@ export default function WaiversPage() {
           /* My Bids tab */
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {myBids.length === 0 && (
-              <p style={{ color: "#A89880", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>No bids placed this gameweek.</p>
+              <p style={{ color: "var(--c-text-muted)", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>No bids placed this gameweek.</p>
             )}
             {myBids.map((bid) => {
               const statusColors: Record<string, string> = {
@@ -276,7 +276,7 @@ export default function WaiversPage() {
                 <div key={bid.id} className="player-row" style={{ justifyContent: "space-between" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{bid.player?.name ?? bid.player_id}</div>
-                    <div style={{ fontSize: 12, color: "#A89880", fontFamily: "'DM Mono', monospace" }}>
+                    <div style={{ fontSize: 12, color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace" }}>
                       {bid.player?.club} · {bid.player?.position}
                       {bid.drop_player && <> · Drop: {bid.drop_player.name}</>}
                     </div>
@@ -302,12 +302,12 @@ export default function WaiversPage() {
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setBidTarget(null); }}>
           <div className="modal">
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Place Bid</h2>
-            <p style={{ color: "#6B5E52", fontSize: 13, marginBottom: 20 }}>
+            <p style={{ color: "var(--c-text-muted)", fontSize: 13, marginBottom: 20 }}>
               <strong>{bidTarget.name}</strong> · {bidTarget.club} · {bidTarget.position}
             </p>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A89880", display: "block", marginBottom: 6 }}>
+              <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-muted)", display: "block", marginBottom: 6 }}>
                 Bid Amount <span style={{ color: "#FF5A1F" }}>({myCredits} available)</span>
               </label>
               <input
@@ -322,7 +322,7 @@ export default function WaiversPage() {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A89880", display: "block", marginBottom: 6 }}>
+              <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-muted)", display: "block", marginBottom: 6 }}>
                 Drop Player (optional)
               </label>
               <select
@@ -344,7 +344,7 @@ export default function WaiversPage() {
             )}
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setBidTarget(null)} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #EDE5D8", background: "white", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em" }}>
+              <button onClick={() => setBidTarget(null)} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid var(--c-border-strong)", background: "var(--c-bg-elevated)", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em" }}>
                 Cancel
               </button>
               <button onClick={placeBid} disabled={bidLoading || bidAmount > myCredits} className="primary-btn" style={{ flex: 2 }}>

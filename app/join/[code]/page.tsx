@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 type LeagueInfo = {
   id: string;
@@ -16,6 +18,7 @@ type LeagueInfo = {
 export default function JoinLeaguePage() {
   const params = useParams();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const code = params.code as string;
 
   const [league, setLeague] = useState<LeagueInfo | null>(null);
@@ -122,9 +125,9 @@ export default function JoinLeaguePage() {
     padding: "12px 14px",
     fontFamily: "'DM Sans', sans-serif",
     fontSize: "16px",
-    color: "#1C1410",
-    background: "#FAF7F2",
-    border: "1.5px solid #E8E0D8",
+    color: "var(--c-text)",
+    background: "var(--c-input)",
+    border: "1.5px solid var(--c-input-border)",
     borderRadius: "10px",
     outline: "none",
     boxSizing: "border-box",
@@ -133,10 +136,10 @@ export default function JoinLeaguePage() {
   if (loading) {
     return (
       <div style={{
-        minHeight: "100vh", background: "#FAF7F2",
+        minHeight: "100vh", background: "var(--c-bg)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A89880", letterSpacing: "0.1em" }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text-muted)", letterSpacing: "0.1em" }}>
           Loading…
         </div>
       </div>
@@ -146,15 +149,15 @@ export default function JoinLeaguePage() {
   if (notFound) {
     return (
       <div style={{
-        minHeight: "100vh", background: "#FAF7F2",
+        minHeight: "100vh", background: "var(--c-bg)",
         display: "flex", alignItems: "center", justifyContent: "center",
         flexDirection: "column", gap: 16, padding: "24px", textAlign: "center",
       }}>
         <div style={{ fontSize: 48 }}>🔍</div>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#1C1410" }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "var(--c-text)" }}>
           League not found.
         </h1>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#9C8A7A" }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "var(--c-text-muted)" }}>
           This invite link may have expired or the code is incorrect.
         </p>
         <button
@@ -163,7 +166,7 @@ export default function JoinLeaguePage() {
             marginTop: 8, padding: "12px 24px", borderRadius: 10, border: "none",
             background: "linear-gradient(135deg,#FF5A1F,#E8400A)", color: "white",
             fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em",
-            cursor: "pointer",
+            cursor: "pointer", minHeight: 44, minWidth: 44,
           }}
         >
           Back to Hub
@@ -177,54 +180,55 @@ export default function JoinLeaguePage() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#FAF7F2",
+      minHeight: "100vh", background: "var(--c-bg)",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "24px",
     }}>
+      <div style={{ position: "fixed", top: 16, right: 16 }}><ThemeToggle /></div>
       <div style={{ width: "100%", maxWidth: "420px" }}>
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 900, letterSpacing: "0.08em", color: "#1C1410" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 28 : 36, fontWeight: 900, letterSpacing: "0.08em", color: "var(--c-text)" }}>
             CURTIS
           </div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9C8A7A", marginTop: 6 }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginTop: 6 }}>
             Draft Football
           </div>
         </div>
 
         {/* Card */}
-        <div style={{ background: "#FFFFFF", borderRadius: 16, padding: "32px 32px 28px", border: "1.5px solid #E8E0D8" }}>
+        <div style={{ background: "var(--c-card)", borderRadius: 16, padding: isMobile ? "24px 20px 20px" : "32px 32px 28px", border: "1.5px solid var(--c-card-border)" }}>
 
           {/* League info */}
           <div style={{
-            background: "#FAF7F2", borderRadius: 10, padding: "16px 18px",
-            marginBottom: 24, border: "1px solid #EDE5D8",
+            background: "var(--c-bg)", borderRadius: 10, padding: "16px 18px",
+            marginBottom: 24, border: "1px solid var(--c-border)",
           }}>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89880", marginBottom: 6 }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 6 }}>
               You&apos;ve been invited to
             </div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "#1C1410", marginBottom: 4 }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "var(--c-text)", marginBottom: 4 }}>
               {league?.name}
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880" }}>{formatLabel}</span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880" }}>·</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{formatLabel}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>·</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: isFull ? "#C0392B" : "#16A34A" }}>
                 {teamCount} / {league?.max_teams} managers
               </span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880" }}>·</span>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880" }}>{league?.season}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>·</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{league?.season}</span>
             </div>
           </div>
 
           {alreadyMember ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "#1C1410", marginBottom: 6 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--c-text)", marginBottom: 6 }}>
                 You&apos;re already in this league.
               </p>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#9C8A7A" }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)" }}>
                 Head to the hub to manage your squad.
               </p>
               <button
@@ -234,6 +238,7 @@ export default function JoinLeaguePage() {
                   background: "#FF5A1F", color: "white", border: "none",
                   borderRadius: 8, fontFamily: "'DM Sans', sans-serif",
                   fontSize: 15, fontWeight: 600, cursor: "pointer",
+                  minHeight: 44,
                 }}
               >
                 Go to League Hub
@@ -242,23 +247,23 @@ export default function JoinLeaguePage() {
           ) : isFull ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "#1C1410", marginBottom: 6 }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--c-text)", marginBottom: 6 }}>
                 This league is full.
               </p>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#9C8A7A" }}>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)" }}>
                 All {league?.max_teams} manager slots have been filled.
               </p>
             </div>
           ) : (
             <>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "#1C1410", margin: "0 0 20px 0" }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: "0 0 20px 0" }}>
                 Name your team
               </h2>
 
               <div style={{ marginBottom: 20 }}>
                 <label style={{
                   display: "block", fontFamily: "'DM Mono', monospace", fontSize: 10,
-                  letterSpacing: "0.1em", textTransform: "uppercase", color: "#9C8A7A", marginBottom: 8,
+                  letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 8,
                 }}>
                   Team Name
                 </label>
@@ -270,7 +275,7 @@ export default function JoinLeaguePage() {
                   onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                   style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = "#FF5A1F")}
-                  onBlur={(e) => (e.target.style.borderColor = "#E8E0D8")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--c-input-border)")}
                 />
               </div>
 
@@ -294,6 +299,7 @@ export default function JoinLeaguePage() {
                   fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600,
                   cursor: joining || !teamName.trim() ? "not-allowed" : "pointer",
                   transition: "background 0.15s",
+                  minHeight: 44,
                 }}
               >
                 {joining ? "Joining…" : "Join League"}
@@ -305,7 +311,7 @@ export default function JoinLeaguePage() {
         {!alreadyMember && !isFull && (
           <p style={{
             textAlign: "center", fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13, color: "#A89880", marginTop: 16,
+            fontSize: 13, color: "var(--c-text-muted)", marginTop: 16,
           }}>
             Already have an account?{" "}
             <span

@@ -1,0 +1,40 @@
+{
+  "name": "CURTIS",
+  "short_name": "CURTIS",
+  "description": "Draft Fantasy Football — Your CB's interceptions count.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF7F2",
+  "theme_color": "#FF5A1F",
+  "categories": ["sports", "games", "entertainment"],
+  "icons": [
+    {
+      "src": "/api/pwa-icon/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/api/pwa-icon/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/pwa-icon/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mock Draft",
+      "short_name": "Mock",
+      "description": "Practice a draft",
+      "url": "/mock-draft",
+      "icons": [{ "src": "/api/pwa-icon/96", "sizes": "96x96" }]
+    }
+  ]
+}

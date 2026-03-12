@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 // ─── DRAFT CHAT ───────────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ function DraftChat({ leagueId, myUserId }: { leagueId: string; myUserId: string 
       {/* Message list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
         {messages.length === 0 && (
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4A3E34", alignSelf: "center", marginTop: 20, letterSpacing: "0.06em" }}>Draft room chat</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", alignSelf: "center", marginTop: 20, letterSpacing: "0.06em" }}>Draft room chat</p>
         )}
         {messages.map((msg, i) => {
           const isMe = msg.sender_id === myUserId;
@@ -72,13 +74,13 @@ function DraftChat({ leagueId, myUserId }: { leagueId: string; myUserId: string 
           return (
             <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
               {showName && (
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#6B5E52", marginBottom: 2, letterSpacing: "0.05em" }}>{msg.senderName}</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-muted)", marginBottom: 2, letterSpacing: "0.05em" }}>{msg.senderName}</span>
               )}
               <div style={{
                 maxWidth: "85%", padding: "7px 11px", borderRadius: 10, fontSize: 12, lineHeight: 1.45, wordBreak: "break-word",
-                background: isMe ? "#FF5A1F" : "rgba(255,255,255,0.07)",
-                color: isMe ? "white" : "#F5F0E8",
-                border: isMe ? "none" : "1px solid rgba(255,255,255,0.08)",
+                background: isMe ? "#FF5A1F" : "var(--c-input)",
+                color: isMe ? "white" : "var(--c-text)",
+                border: isMe ? "none" : "1px solid var(--c-border)",
                 borderBottomRightRadius: isMe ? 3 : 10,
                 borderBottomLeftRadius: isMe ? 10 : 3,
               }}>
@@ -100,8 +102,8 @@ function DraftChat({ leagueId, myUserId }: { leagueId: string; myUserId: string 
           placeholder="Say something…"
           disabled={!myUserId}
           style={{
-            flex: 1, padding: "8px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 8, color: "#F5F0E8", fontFamily: "'DM Sans', sans-serif", fontSize: 12, outline: "none",
+            flex: 1, padding: "8px 12px", background: "var(--c-input)", border: "1px solid var(--c-input-border)",
+            borderRadius: 8, color: "var(--c-text)", fontFamily: "'DM Sans', sans-serif", fontSize: 12, outline: "none",
           }}
         />
         <button
@@ -280,6 +282,9 @@ function DraftCountdown({ target, leagueId, onStart }: { target: string; leagueI
 export default function DraftRoomPage() {
   const params = useParams();
   const leagueId = params.id as string;
+
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<"players" | "board" | "squad">("players");
 
   // ── Data state
   const [loading, setLoading] = useState(true);
@@ -575,8 +580,8 @@ export default function DraftRoomPage() {
   // ── Loading / Error states
   if (loading) {
     return (
-      <div style={{ height: "100vh", background: "#0F0D0B", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#4A3E34", letterSpacing: "0.12em" }}>
+      <div style={{ height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text-dim)", letterSpacing: "0.12em" }}>
           Loading draft room…
         </div>
       </div>
@@ -585,8 +590,8 @@ export default function DraftRoomPage() {
 
   if (error) {
     return (
-      <div style={{ height: "100vh", background: "#0F0D0B", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "#F5F0E8" }}>{error}</div>
+      <div style={{ height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: "var(--c-text)" }}>{error}</div>
         <Link href="/" style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#FF5A1F", textDecoration: "none" }}>← Back to hub</Link>
       </div>
     );
@@ -595,44 +600,44 @@ export default function DraftRoomPage() {
   // ── Pending: waiting for commissioner to start
   if (league?.draft_status === "pending") {
     return (
-      <div style={{ height: "100vh", background: "#0F0D0B", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 0, color: "#F5F0E8" }}>
+      <div style={{ height: "100vh", background: "var(--c-bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 0, color: "var(--c-text)" }}>
         <div style={{ width: "100%", maxWidth: 480, padding: "0 24px" }}>
           {/* Logo */}
           <div style={{ textAlign: "center", marginBottom: 40 }}>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, letterSpacing: "0.08em" }}>CURTIS</div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4A3E34", marginTop: 6 }}>Draft Room</div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginTop: 6 }}>Draft Room</div>
           </div>
 
-          <div style={{ background: "#1A1612", borderRadius: 16, padding: "32px", border: "1.5px solid rgba(255,255,255,0.06)" }}>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 8 }}>
+          <div style={{ background: "var(--c-bg-elevated)", borderRadius: 16, padding: "32px", border: "1.5px solid var(--c-border)" }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 8 }}>
               {league.name}
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: "#F5F0E8", margin: "0 0 24px 0" }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: "var(--c-text)", margin: "0 0 24px 0" }}>
               {isCommissioner ? "Ready to start the draft?" : "Waiting for draft to start…"}
             </h1>
 
             {/* Managers list */}
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 10 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 10 }}>
                 Managers joined ({teams.length} / {league.max_teams})
               </div>
               {teams.map(t => (
                 <div key={t.id} style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "9px 12px", borderRadius: 8, marginBottom: 4,
-                  background: t.user_id === currentUserId ? "rgba(255,90,31,0.08)" : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${t.user_id === currentUserId ? "rgba(255,90,31,0.2)" : "rgba(255,255,255,0.05)"}`,
+                  background: t.user_id === currentUserId ? "rgba(255,90,31,0.08)" : "var(--c-card)",
+                  border: `1px solid ${t.user_id === currentUserId ? "rgba(255,90,31,0.2)" : "var(--c-card-border)"}`,
                 }}>
                   <div style={{
                     width: 28, height: 28, borderRadius: 8,
-                    background: t.user_id === currentUserId ? "rgba(255,90,31,0.3)" : "rgba(255,255,255,0.08)",
+                    background: t.user_id === currentUserId ? "rgba(255,90,31,0.3)" : "var(--c-input)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "'DM Mono', monospace", fontSize: 11, color: t.user_id === currentUserId ? "#FF5A1F" : "#6B5E52",
+                    fontFamily: "'DM Mono', monospace", fontSize: 11, color: t.user_id === currentUserId ? "#FF5A1F" : "var(--c-text-muted)",
                   }}>
                     {t.draft_position}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "#F5F0E8" }}>{t.name}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--c-text)" }}>{t.name}</div>
                     {t.user_id === league.commissioner_id && (
                       <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#FF5A1F", letterSpacing: "0.06em" }}>Commissioner</div>
                     )}
@@ -663,8 +668,8 @@ export default function DraftRoomPage() {
               // Public league with future start time — show countdown
               if (league.is_public && league.draft_starts_at) {
                 return (
-                  <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
-                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Draft starts in</div>
+                  <div style={{ padding: "14px 16px", borderRadius: 10, background: "var(--c-card)", border: "1px solid var(--c-card-border)", textAlign: "center" }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 6 }}>Draft starts in</div>
                     <DraftCountdown target={league.draft_starts_at} leagueId={leagueId} onStart={() => setLeague(prev => prev ? { ...prev, draft_status: "live" } : prev)} />
                   </div>
                 );
@@ -681,9 +686,9 @@ export default function DraftRoomPage() {
 
               // Everyone else: waiting
               return (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderRadius: 10, background: "var(--c-card)", border: "1px solid var(--c-card-border)" }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF5A1F", animation: "pulse 1.5s infinite", flexShrink: 0 }} />
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#A89880" }}>Waiting for the commissioner to start the draft…</span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "var(--c-text-muted)" }}>Waiting for the commissioner to start the draft…</span>
                 </div>
               );
             })()}
@@ -696,7 +701,7 @@ export default function DraftRoomPage() {
 
   // ── Render
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#0F0D0B", color: "#F5F0E8" }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--c-bg)", color: "var(--c-text)" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -728,7 +733,7 @@ export default function DraftRoomPage() {
           white-space: nowrap;
         }
         .pick-btn:hover { background: #E8400A; transform: scale(1.04); }
-        .pick-btn:disabled { background: #2A2520; color: #555; cursor: default; transform: none; }
+        .pick-btn:disabled { background: var(--c-input); color: var(--c-text-dim); cursor: default; transform: none; }
 
         .tab-btn {
           font-family: 'DM Mono', monospace;
@@ -741,9 +746,9 @@ export default function DraftRoomPage() {
           cursor: pointer;
           transition: all 0.15s;
           background: transparent;
-          color: #6B5E52;
+          color: var(--c-text-muted);
         }
-        .tab-btn:hover { color: #F5F0E8; background: rgba(255,255,255,0.06); }
+        .tab-btn:hover { color: var(--c-text); background: var(--c-input); }
         .tab-btn.active { background: rgba(255,90,31,0.15); color: #FF5A1F; }
 
         .pos-chip {
@@ -770,31 +775,31 @@ export default function DraftRoomPage() {
         .search-input {
           width: 100%;
           padding: 9px 12px 9px 32px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: var(--c-input);
+          border: 1px solid var(--c-input-border);
           border-radius: 8px;
-          color: #F5F0E8;
+          color: var(--c-text);
           font-family: 'DM Mono', monospace;
           font-size: 12px;
           outline: none;
           transition: border-color 0.15s;
         }
-        .search-input::placeholder { color: #4A3E34; }
+        .search-input::placeholder { color: var(--c-text-dim); }
         .search-input:focus { border-color: rgba(255,90,31,0.4); }
 
         .pos-filter-btn {
           padding: 6px 12px;
           border-radius: 7px;
-          border: 1px solid rgba(255,255,255,0.08);
+          border: 1px solid var(--c-border);
           background: transparent;
           font-family: 'DM Mono', monospace;
           font-size: 10px;
           letter-spacing: 0.08em;
-          color: #6B5E52;
+          color: var(--c-text-muted);
           cursor: pointer;
           transition: all 0.15s;
         }
-        .pos-filter-btn:hover { color: #F5F0E8; border-color: rgba(255,255,255,0.2); }
+        .pos-filter-btn:hover { color: var(--c-text); border-color: var(--c-border-strong); }
         .pos-filter-btn.active { background: rgba(255,90,31,0.15); color: #FF5A1F; border-color: rgba(255,90,31,0.3); }
 
         .squad-slot {
@@ -803,8 +808,8 @@ export default function DraftRoomPage() {
           gap: 8px;
           padding: 7px 10px;
           border-radius: 7px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.06);
+          background: var(--c-card);
+          border: 1px solid var(--c-card-border);
           margin-bottom: 4px;
         }
 
@@ -831,13 +836,23 @@ export default function DraftRoomPage() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #3A2E24; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--c-border-strong); border-radius: 2px; }
+
+        @media (max-width: 768px) {
+          .player-row {
+            grid-template-columns: 28px 1fr 38px 42px 32px;
+            gap: 6px;
+            padding: 8px 10px;
+          }
+          .player-row .rank-col { display: none; }
+          .player-row .club-col { display: none; }
+        }
       `}</style>
 
       {/* ── TOP BAR ── */}
       <div style={{
-        height: 56, background: "#0A0806",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        height: 56, background: "var(--c-bg-elevated)",
+        borderBottom: "1px solid var(--c-border)",
         display: "flex", alignItems: "center",
         padding: "0 20px", gap: 20, flexShrink: 0,
       }}>
@@ -855,46 +870,57 @@ export default function DraftRoomPage() {
         </div>
 
         {/* Nav */}
-        <div style={{ display: "flex", gap: 16, paddingLeft: 12, borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: isMobile ? "none" : "flex", gap: 16, paddingLeft: 12, borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
           {navLinks.map(item => (
             <Link key={item.label} href={item.href} className={`nav-link${item.label === "Draft" ? " active" : ""}`}>{item.label}</Link>
           ))}
         </div>
 
         {/* Draft status */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16, paddingLeft: 20, borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
-          <div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6B5E52", marginBottom: 2 }}>League</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "#F5F0E8", lineHeight: 1, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{league?.name}</div>
-          </div>
-          <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.06)" }} />
-          <div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6B5E52", marginBottom: 2 }}>Round</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#F5F0E8", lineHeight: 1 }}>{currentRound}</div>
-          </div>
-          <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.06)" }} />
-          <div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6B5E52", marginBottom: 2 }}>Pick</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#F5F0E8", lineHeight: 1 }}>
-              {isDraftComplete ? "Done" : currentPickNum}
-              {!isDraftComplete && <span style={{ fontSize: 11, color: "#4A3E34", fontFamily: "'DM Mono', monospace" }}> / {totalPicks}</span>}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: isMobile ? 10 : 16, paddingLeft: isMobile ? 8 : 20, borderLeft: "1px solid var(--c-border)", overflow: "hidden" }}>
+          {!isMobile && (
+            <>
+              <div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 2 }}>League</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text)", lineHeight: 1, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{league?.name}</div>
+              </div>
+              <div style={{ width: 1, height: 28, background: "var(--c-border)" }} />
+              <div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 2 }}>Round</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "var(--c-text)", lineHeight: 1 }}>{currentRound}</div>
+              </div>
+              <div style={{ width: 1, height: 28, background: "var(--c-border)" }} />
+              <div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 2 }}>Pick</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "var(--c-text)", lineHeight: 1 }}>
+                  {isDraftComplete ? "Done" : currentPickNum}
+                  {!isDraftComplete && <span style={{ fontSize: 11, color: "var(--c-text-dim)", fontFamily: "'DM Mono', monospace" }}> / {totalPicks}</span>}
+                </div>
+              </div>
+              <div style={{ width: 1, height: 28, background: "var(--c-border)" }} />
+              <div style={{ flex: 1, maxWidth: 200 }}>
+                <div style={{ height: 4, background: "var(--c-border)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 99,
+                    background: "linear-gradient(90deg,#FF5A1F,#E8400A)",
+                    width: `${totalPicks > 0 ? ((picks.length) / totalPicks) * 100 : 0}%`,
+                    transition: "width 0.4s ease",
+                  }} />
+                </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", marginTop: 3, letterSpacing: "0.06em" }}>
+                  {picks.length} picks made · {Math.max(0, totalPicks - picks.length)} remaining
+                </div>
+              </div>
+            </>
+          )}
+          {isMobile && (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", flexShrink: 0 }}>
+              R{currentRound} · {isDraftComplete ? "Done" : `Pick ${currentPickNum}/${totalPicks}`}
             </div>
-          </div>
-          <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.06)" }} />
-          <div style={{ flex: 1, maxWidth: 200 }}>
-            <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{
-                height: "100%", borderRadius: 99,
-                background: "linear-gradient(90deg,#FF5A1F,#E8400A)",
-                width: `${totalPicks > 0 ? ((picks.length) / totalPicks) * 100 : 0}%`,
-                transition: "width 0.4s ease",
-              }} />
-            </div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4A3E34", marginTop: 3, letterSpacing: "0.06em" }}>
-              {picks.length} picks made · {Math.max(0, totalPicks - picks.length)} remaining
-            </div>
-          </div>
+          )}
         </div>
+
+        <ThemeToggle />
 
         {/* Current pick indicator */}
         {!isDraftComplete ? (
@@ -912,10 +938,10 @@ export default function DraftRoomPage() {
               </>
             ) : (
               <>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4A3E34" }} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--c-text-dim)" }} />
                 <div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4A3E34", letterSpacing: "0.08em", marginBottom: 1 }}>ON THE CLOCK</div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500, color: "#A89880" }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.08em", marginBottom: 1 }}>ON THE CLOCK</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500, color: "var(--c-text-muted)" }}>
                     {currentTeam?.name ?? "—"}
                   </div>
                 </div>
@@ -935,19 +961,33 @@ export default function DraftRoomPage() {
       </div>
 
       {/* ── BODY ── */}
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 340px", overflow: "hidden" }}>
+      <div style={{
+        flex: 1,
+        display: isMobile ? "flex" : "grid",
+        gridTemplateColumns: isMobile ? undefined : "1fr 340px",
+        flexDirection: isMobile ? "column" : undefined,
+        overflow: "hidden",
+        paddingBottom: isMobile ? 56 : 0,
+      }}>
 
         {/* LEFT — Draft Board + Player Browser */}
-        <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{
+          display: isMobile && mobileTab === "squad" ? "none" : "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
+          flex: isMobile ? 1 : undefined,
+        }}>
 
           {/* Draft Board */}
           <div style={{
             flexShrink: 0, padding: "12px 16px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            background: "#0A0806",
+            borderBottom: "1px solid var(--c-border)",
+            background: "var(--c-bg-elevated)",
+            display: isMobile && mobileTab === "players" ? "none" : "block",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4A3E34" }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>
                 Draft Board — {league?.draft_type === "snake" ? "Snake" : league?.draft_type ?? "Snake"} Order · {teams.length} Teams · {totalRounds} Rounds
               </span>
               <div style={{ display: "flex", gap: 4 }}>
@@ -964,7 +1004,7 @@ export default function DraftRoomPage() {
             </div>
 
             {teams.length === 0 ? (
-              <div style={{ padding: "20px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4A3E34" }}>
+              <div style={{ padding: "20px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>
                 Waiting for managers to join…
               </div>
             ) : (
@@ -980,13 +1020,13 @@ export default function DraftRoomPage() {
                   {teams.map(team => (
                     <div key={team.id} style={{
                       padding: "5px 6px", borderRadius: 6,
-                      background: team.user_id === currentUserId ? "rgba(255,90,31,0.12)" : "rgba(255,255,255,0.03)",
-                      border: `1px solid ${team.user_id === currentUserId ? "rgba(255,90,31,0.2)" : "rgba(255,255,255,0.05)"}`,
+                      background: team.user_id === currentUserId ? "rgba(255,90,31,0.12)" : "var(--c-card)",
+                      border: `1px solid ${team.user_id === currentUserId ? "rgba(255,90,31,0.2)" : "var(--c-card-border)"}`,
                       textAlign: "center",
                     }}>
                       <div style={{
                         fontFamily: "'DM Mono', monospace", fontSize: 9,
-                        color: team.user_id === currentUserId ? "#FF5A1F" : team.is_bot ? "#4A3E34" : "#6B5E52",
+                        color: team.user_id === currentUserId ? "#FF5A1F" : team.is_bot ? "var(--c-text-dim)" : "var(--c-text-muted)",
                         letterSpacing: "0.06em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                       }}>
                         {team.user_id === currentUserId ? "YOU" : team.is_bot ? "🤖 BOT" : team.name.slice(0, 6)}
@@ -1000,7 +1040,7 @@ export default function DraftRoomPage() {
                     return [
                       <div key={`r${round}`} style={{
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4A3E34", letterSpacing: "0.08em",
+                        fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.08em",
                       }}>R{round}</div>,
                       ...teams.map(team => {
                         const bpn = boardPickNum(round, team.draft_position, teams.length);
@@ -1014,9 +1054,9 @@ export default function DraftRoomPage() {
                             background: isCurrent
                               ? "rgba(255,90,31,0.15)"
                               : player
-                                ? isMe ? "rgba(255,90,31,0.08)" : "rgba(255,255,255,0.03)"
-                                : "rgba(255,255,255,0.02)",
-                            border: `1px solid ${isCurrent ? "rgba(255,90,31,0.35)" : "rgba(255,255,255,0.04)"}`,
+                                ? isMe ? "rgba(255,90,31,0.08)" : "var(--c-card)"
+                                : "var(--c-bg)",
+                            border: `1px solid ${isCurrent ? "rgba(255,90,31,0.35)" : "var(--c-card-border)"}`,
                           }}>
                             {isCurrent && !player ? (
                               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -1025,7 +1065,7 @@ export default function DraftRoomPage() {
                               </div>
                             ) : player ? (
                               <>
-                                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 600, color: "#F5F0E8", lineHeight: 1.2, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 600, color: "var(--c-text)", lineHeight: 1.2, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {player.name}
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -1035,11 +1075,11 @@ export default function DraftRoomPage() {
                                     color: POS_META[player.position].color,
                                     fontFamily: "'DM Mono', monospace",
                                   }}>{player.position}</span>
-                                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "#4A3E34" }}>{player.club}</span>
+                                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "var(--c-text-dim)" }}>{player.club}</span>
                                 </div>
                               </>
                             ) : (
-                              <span style={{ color: "#2A2018", fontFamily: "'DM Mono', monospace", fontSize: 9 }}>—</span>
+                              <span style={{ color: "var(--c-text-dim)", fontFamily: "'DM Mono', monospace", fontSize: 9 }}>—</span>
                             )}
                           </div>
                         );
@@ -1055,21 +1095,21 @@ export default function DraftRoomPage() {
           {!isDraftComplete && upcomingPicks.length > 0 && (
             <div style={{
               flexShrink: 0, padding: "8px 16px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-              background: "#0D0B09",
+              borderBottom: "1px solid var(--c-border)",
+              background: "var(--c-bg)",
               display: "flex", alignItems: "center", gap: 8,
             }}>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginRight: 4, flexShrink: 0 }}>Up next:</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginRight: 4, flexShrink: 0 }}>Up next:</span>
               {upcomingPicks.map((p) => (
                 <div key={p.pickNum} style={{
                   display: "flex", alignItems: "center", gap: 5,
                   padding: "4px 10px", borderRadius: 7,
-                  background: p.isMe ? "rgba(255,90,31,0.1)" : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${p.isMe ? "rgba(255,90,31,0.2)" : "rgba(255,255,255,0.06)"}`,
+                  background: p.isMe ? "rgba(255,90,31,0.1)" : "var(--c-card)",
+                  border: `1px solid ${p.isMe ? "rgba(255,90,31,0.2)" : "var(--c-card-border)"}`,
                   flexShrink: 0,
                 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "#4A3E34" }}>#{p.pickNum}</span>
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: p.isMe ? "#FF5A1F" : "#A89880", fontWeight: p.isMe ? 600 : 400 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "var(--c-text-dim)" }}>#{p.pickNum}</span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: p.isMe ? "#FF5A1F" : "var(--c-text-muted)", fontWeight: p.isMe ? 600 : 400 }}>
                     {p.isMe ? "YOU" : p.team.name.slice(0, 8)}
                   </span>
                 </div>
@@ -1082,7 +1122,7 @@ export default function DraftRoomPage() {
             {/* Search + filters */}
             <div style={{ display: "flex", gap: 8, marginBottom: 10, flexShrink: 0 }}>
               <div style={{ flex: 1, position: "relative" }}>
-                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#4A3E34", fontSize: 12 }}>⌕</span>
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-text-dim)", fontSize: 12 }}>⌕</span>
                 <input className="search-input" placeholder="Search players..." value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} />
               </div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -1093,7 +1133,7 @@ export default function DraftRoomPage() {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: "flex", gap: 2, marginBottom: 8, flexShrink: 0, background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 3 }}>
+            <div style={{ display: "flex", gap: 2, marginBottom: 8, flexShrink: 0, background: "var(--c-card)", borderRadius: 8, padding: 3 }}>
               {[
                 { id: "available", label: `Available (${availablePlayers.length})` },
                 { id: "watchlist", label: `Watchlist (${watchlist.length})` },
@@ -1105,12 +1145,13 @@ export default function DraftRoomPage() {
 
             {/* Column headers */}
             <div style={{
-              display: "grid", gridTemplateColumns: "20px 28px 1fr 38px 52px 42px 32px",
+              display: "grid",
+              gridTemplateColumns: isMobile ? "28px 1fr 38px 42px 32px" : "20px 28px 1fr 38px 52px 42px 32px",
               gap: 8, padding: "4px 12px 6px",
               borderBottom: "1px solid rgba(255,255,255,0.04)", flexShrink: 0,
             }}>
-              {["#", "", "Player", "Pos", "Club", "Pts", ""].map((h, i) => (
-                <span key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", textAlign: i > 2 ? "center" : "left" }}>{h}</span>
+              {(isMobile ? ["", "Player", "Pos", "Pts", ""] : ["#", "", "Player", "Pos", "Club", "Pts", ""]).map((h, i) => (
+                <span key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", textAlign: i > (isMobile ? 1 : 2) ? "center" : "left" }}>{h}</span>
               ))}
             </div>
 
@@ -1118,15 +1159,15 @@ export default function DraftRoomPage() {
             <div style={{ flex: 1, overflowY: "auto", paddingBottom: 12 }}>
               {players.length === 0 ? (
                 <div style={{ padding: "40px 12px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A3E34", letterSpacing: "0.08em", marginBottom: 8 }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)", letterSpacing: "0.08em", marginBottom: 8 }}>
                     No players in the database.
                   </div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#2A2018", lineHeight: 1.5 }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "var(--c-text-dim)", lineHeight: 1.5 }}>
                     Run the API-Football sync to populate players before starting the draft.
                   </div>
                 </div>
               ) : displayPlayers.length === 0 ? (
-                <div style={{ padding: "32px 12px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A3E34", letterSpacing: "0.08em" }}>
+                <div style={{ padding: "32px 12px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)", letterSpacing: "0.08em" }}>
                   {activeTab === "watchlist" ? "No players on watchlist" : "No players found"}
                 </div>
               ) : (
@@ -1137,17 +1178,20 @@ export default function DraftRoomPage() {
                   const pos = POS_META[player.position];
                   return (
                     <div key={player.id} className={`player-row${isMyTurn && !isOwned ? " your-turn" : ""}`}
-                      style={{ opacity: isOwned && activeTab !== "mysquad" ? 0.4 : 1 }}
+                      style={{
+                        opacity: isOwned && activeTab !== "mysquad" ? 0.4 : 1,
+                        gridTemplateColumns: isMobile ? "28px 1fr 38px 42px 32px" : "20px 28px 1fr 38px 52px 42px 32px",
+                      }}
                     >
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4A3E34" }}>{idx + 1}</span>
+                      {!isMobile && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)" }}>{idx + 1}</span>}
                       <ClubBadge club={player.club} size={22} />
                       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "#F5F0E8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                           {player.name}
                         </span>
                       </div>
                       <span className="pos-chip" style={{ background: pos.bg, color: pos.color, border: `1px solid ${pos.border}` }}>{player.position}</span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#6B5E52", textAlign: "center" }}>{player.club}</span>
+                      {!isMobile && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", textAlign: "center" }}>{player.club}</span>}
                       <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "#FF5A1F", textAlign: "center" }}>{player.season_points}</span>
                       <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                         {activeTab !== "mysquad" && (
@@ -1175,7 +1219,13 @@ export default function DraftRoomPage() {
         </div>
 
         {/* RIGHT — Squad / Chat panel */}
-        <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "#0D0B09" }}>
+        <div style={{
+          display: isMobile && mobileTab !== "squad" ? "none" : "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "var(--c-bg)",
+          flex: isMobile ? 1 : undefined,
+        }}>
 
           {/* Panel tab toggle */}
           <div style={{ display: "flex", gap: 2, padding: "8px 10px 0", flexShrink: 0 }}>
@@ -1206,7 +1256,7 @@ export default function DraftRoomPage() {
             }}>
               <ClubBadge club={lastPick.player.club} size={28} />
               <div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "#F5F0E8" }}>{lastPick.player.name}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>{lastPick.player.name}</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: lastPick.teamId === myTeam?.id ? "#FF5A1F" : "#6B5E52", letterSpacing: "0.06em", marginTop: 2 }}>
                   {lastPick.teamId === myTeam?.id
                     ? "✓ Your pick"
@@ -1220,7 +1270,7 @@ export default function DraftRoomPage() {
           {rightPanel === "chat" && <DraftChat leagueId={leagueId} myUserId={currentUserId} />}
           <div style={{ display: rightPanel === "squad" ? "contents" : "none" }}>
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 0" }}>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 10 }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 10 }}>
               {myTeam ? `${myTeam.name} (${myPicks.length} / ${totalRounds})` : "Not in this league"}
             </div>
 
@@ -1231,17 +1281,17 @@ export default function DraftRoomPage() {
                 <div key={pos} style={{ marginBottom: 12 }}>
                   <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", color: pm.color, marginBottom: 5, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ padding: "2px 6px", borderRadius: 4, background: pm.bg, border: `1px solid ${pm.border}` }}>{pos}</span>
-                    <span style={{ color: "#4A3E34" }}>{posPlayers.length} picked</span>
+                    <span style={{ color: "var(--c-text-dim)" }}>{posPlayers.length} picked</span>
                   </div>
                   {posPlayers.map(player => (
                     <div key={player.id} className="squad-slot">
                       <ClubBadge club={player.club} size={22} />
-                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500, color: "#F5F0E8", flex: 1 }}>{player.name}</span>
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 500, color: "var(--c-text)", flex: 1 }}>{player.name}</span>
                       <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "#FF5A1F" }}>{player.season_points}</span>
                     </div>
                   ))}
                   {posPlayers.length === 0 && (
-                    <div style={{ padding: "7px 10px", borderRadius: 7, border: "1px dashed rgba(255,255,255,0.07)", fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#2A2018", letterSpacing: "0.06em" }}>
+                    <div style={{ padding: "7px 10px", borderRadius: 7, border: "1px dashed var(--c-border)", fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.06em" }}>
                       No {pos} picked yet
                     </div>
                   )}
@@ -1259,8 +1309,8 @@ export default function DraftRoomPage() {
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", color: "#FF5A1F", marginBottom: 6, textTransform: "uppercase" }}>
                 ⚡ It&apos;s your pick!
               </div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#A89880", marginBottom: 10, lineHeight: 1.4 }}>
-                Best available: <strong style={{ color: "#F5F0E8" }}>{availablePlayers[0]?.name}</strong> ({availablePlayers[0]?.position} · {availablePlayers[0]?.season_points} pts)
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "var(--c-text-muted)", marginBottom: 10, lineHeight: 1.4 }}>
+                Best available: <strong style={{ color: "var(--c-text)" }}>{availablePlayers[0]?.name}</strong> ({availablePlayers[0]?.position} · {availablePlayers[0]?.season_points} pts)
               </div>
               <button
                 onClick={() => availablePlayers[0] && makePick(availablePlayers[0])}
@@ -1279,6 +1329,41 @@ export default function DraftRoomPage() {
           )}
           </div>{/* end squad panel wrapper */}
         </div>
+      </div>
+
+      {/* Mobile bottom tab bar */}
+      <div className="mobile-tab-bar">
+        {(["players", "board", "squad"] as const).map(tab => {
+          const labels = { players: "Players", board: "Board", squad: "Squad" };
+          const icons  = { players: "⚽", board: "📋", squad: "👥" };
+          const isActive = mobileTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                flex: 1,
+                height: "100%",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 3,
+                color: isActive ? "#FF5A1F" : "var(--c-text-muted)",
+                borderTop: `2px solid ${isActive ? "#FF5A1F" : "transparent"}`,
+                transition: "color 0.15s",
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{icons[tab]}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {labels[tab]}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

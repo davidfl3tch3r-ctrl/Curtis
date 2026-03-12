@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 // ─── TIER CONFIG ──────────────────────────────────────────────────────────────
 
@@ -79,6 +82,7 @@ function FormBadge({ result }: { result: "W" | "D" | "L" }) {
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 
 export default function PyramidPage() {
+  const isMobile = useIsMobile();
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [myLeagueId, setMyLeagueId] = useState<string | null>(null);
   const [myTier, setMyTier] = useState<number>(1);
@@ -236,10 +240,10 @@ export default function PyramidPage() {
   const tierConfig = TIERS.find((t) => t.level === myTier) ?? TIERS[5];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F2", color: "#1C1410" }}>
+    <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #A89880; text-decoration: none; transition: color 0.15s; }
+        .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--c-text-muted); text-decoration: none; transition: color 0.15s; }
         .nav-link:hover, .nav-link.active { color: #FF5A1F; }
         .standings-row {
           display: grid;
@@ -250,14 +254,14 @@ export default function PyramidPage() {
           border-radius: 10px;
           transition: background 0.12s;
         }
-        .standings-row:hover { background: #F0EAE0; }
-        .standings-row.me { background: #FFF5F0; border: 1.5px solid #FDBA8C; }
+        .standings-row:hover { background: var(--c-row); }
+        .standings-row.me { background: var(--c-accent-dim); border: 1.5px solid #FDBA8C; }
         .col-label {
           font-family: 'DM Mono', monospace;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #A89880;
+          color: var(--c-text-muted);
           padding: 0 16px 8px;
           display: grid;
           grid-template-columns: 36px 1fr 40px 40px 40px 40px 64px 100px 120px;
@@ -283,27 +287,29 @@ export default function PyramidPage() {
         .pyramid-tier.current { border-width: 2px; }
       `}</style>
 
-      {/* Nav */}
-      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 24px", height: 56, display: "flex", alignItems: "center", gap: 28, background: "white" }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F" }}>CURTIS</span>
-        <Link href="/"            className="nav-link">Home</Link>
-        <Link href="/pyramid"     className="nav-link active">Pyramid</Link>
-        <Link href="/fan-leagues" className="nav-link">Fan Leagues</Link>
-        <Link href="/draft/queue" className="nav-link">Public Drafts</Link>
-      </nav>
+      <NavBar
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Pyramid", href: "/pyramid" },
+          { label: "Fan Leagues", href: "/fan-leagues" },
+          { label: "Mock Draft", href: "/mock-draft" },
+        ]}
+        activeLabel="Pyramid"
+        right={<ThemeToggle size="sm" />}
+      />
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px 60px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "24px 16px 40px" : "40px 24px 60px" }}>
 
         {/* Page header */}
         <div style={{ marginBottom: 40 }}>
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89880", marginBottom: 6 }}>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 6 }}>
             Season 2025–26 · Gameweek {currentGW || "—"} of {totalGW}
           </p>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 10 }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 28 : 38, fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 10 }}>
             The Curtis<br />
             <span style={{ color: "#FF5A1F", fontStyle: "italic" }}>Pyramid</span>
           </h1>
-          <p style={{ color: "#6B5E52", fontSize: 14, maxWidth: 480, lineHeight: 1.6 }}>
+          <p style={{ color: "var(--c-text-muted)", fontSize: 14, maxWidth: 480, lineHeight: 1.6 }}>
             Six tiers. One goal. Every manager fights for promotion — or survival.
             Top 2 go up automatically. 3rd/4th and 5th/6th meet in the playoffs.
           </p>
@@ -311,7 +317,7 @@ export default function PyramidPage() {
 
         {/* Pyramid visualisation */}
         <div style={{ marginBottom: 48 }}>
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89880", marginBottom: 16 }}>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 16 }}>
             Division Structure
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -327,8 +333,8 @@ export default function PyramidPage() {
                     className={`pyramid-tier${isCurrent ? " current" : ""}`}
                     style={{
                       width: `${widthPct}%`,
-                      background: isCurrent ? tier.bg : "#F7F3EE",
-                      borderColor: isCurrent ? tier.accent : "#EDE5D8",
+                      background: isCurrent ? tier.bg : "var(--c-card)",
+                      borderColor: isCurrent ? tier.accent : "var(--c-card-border)",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -338,18 +344,18 @@ export default function PyramidPage() {
                           padding: "2px 7px", borderRadius: 4, background: tier.accent, color: "white",
                         }}>YOU</span>
                       )}
-                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 800, color: isCurrent ? tier.accent : "#1C1410" }}>
+                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 800, color: isCurrent ? tier.accent : "var(--c-text)" }}>
                         {tier.name}
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
                       {summary && summary.groupCount > 0 && (
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#A89880" }}>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-muted)" }}>
                           {summary.groupCount} {summary.groupCount === 1 ? "group" : "groups"} · {summary.managerCount} managers
                         </span>
                       )}
                       {(!summary || summary.groupCount === 0) && (
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#C4B8AA" }}>No active leagues</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)" }}>No active leagues</span>
                       )}
                       <span style={{
                         fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.08em",
@@ -377,16 +383,16 @@ export default function PyramidPage() {
           ].map((z) => (
             <div key={z.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <div style={{ width: 12, height: 12, borderRadius: 3, background: z.color }} />
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#6B5E52" }}>{z.label}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-muted)" }}>{z.label}</span>
             </div>
           ))}
         </div>
 
         {/* User's group standings */}
         {noLeague && (
-          <div style={{ background: "white", border: "1.5px solid #EDE5D8", borderRadius: 14, padding: "40px 32px", textAlign: "center" }}>
+          <div style={{ background: "var(--c-bg-elevated)", border: "1.5px solid var(--c-border-strong)", borderRadius: 14, padding: "40px 32px", textAlign: "center" }}>
             <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, marginBottom: 10 }}>You&apos;re not in a pyramid league yet</p>
-            <p style={{ color: "#6B5E52", fontSize: 14, marginBottom: 24 }}>
+            <p style={{ color: "var(--c-text-muted)", fontSize: 14, marginBottom: 24 }}>
               Join a public draft to enter the pyramid and start your climb.
             </p>
             <Link href="/draft/queue" style={{
@@ -405,13 +411,13 @@ export default function PyramidPage() {
             {/* Division header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
               <div>
-                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89880", marginBottom: 4 }}>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 4 }}>
                   Your Division
                 </p>
                 <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 900 }}>
                   {tierConfig.name}
                   {myGroupLabel && (
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 400, color: "#A89880", marginLeft: 10 }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 400, color: "var(--c-text-muted)", marginLeft: 10 }}>
                       {myGroupLabel}
                     </span>
                   )}
@@ -430,8 +436,8 @@ export default function PyramidPage() {
                   <Link href={`/leagues/${myLeagueId}/table`} style={{
                     fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.07em",
                     padding: "5px 12px", borderRadius: 7,
-                    background: "white", color: "#1C1410",
-                    border: "1.5px solid #EDE5D8", textDecoration: "none",
+                    background: "var(--c-bg-elevated)", color: "var(--c-text)",
+                    border: "1.5px solid var(--c-border-strong)", textDecoration: "none",
                   }}>
                     Full Table →
                   </Link>
@@ -440,9 +446,9 @@ export default function PyramidPage() {
             </div>
 
             {/* Standings table */}
-            <div style={{ background: "white", border: "1.5px solid #EDE5D8", borderRadius: 14, overflow: "hidden" }}>
+            <div className="table-scroll" style={{ background: "var(--c-bg-elevated)", border: "1.5px solid var(--c-border-strong)", borderRadius: 14, overflow: "hidden" }}>
               {/* Column headers */}
-              <div style={{ padding: "10px 16px 2px", borderBottom: "1px solid #F0EAE0" }}>
+              <div style={{ padding: "10px 16px 2px", borderBottom: "1px solid var(--c-border)" }}>
                 <div className="col-label">
                   <span>#</span>
                   <span>Manager</span>
@@ -457,7 +463,7 @@ export default function PyramidPage() {
               </div>
 
               {loading && (
-                <div style={{ padding: "32px 16px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#A89880" }}>
+                <div style={{ padding: "32px 16px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text-muted)" }}>
                   Loading standings…
                 </div>
               )}
@@ -468,14 +474,14 @@ export default function PyramidPage() {
                 const zone  = getZone(pos, myTier, standings.length);
 
                 return (
-                  <div key={team.id} style={{ borderBottom: idx < standings.length - 1 ? "1px solid #F7F3EE" : "none" }}>
+                  <div key={team.id} style={{ borderBottom: idx < standings.length - 1 ? "1px solid var(--c-border)" : "none" }}>
                     <div className={`standings-row${isMe ? " me" : ""}`}>
                       {/* Zone bar + position */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div className="zone-bar" style={{ background: zone.color !== "transparent" ? zone.color : "#EDE5D8" }} />
+                        <div className="zone-bar" style={{ background: zone.color !== "transparent" ? zone.color : "var(--c-border-strong)" }} />
                         <span style={{
                           fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700,
-                          color: zone.color !== "transparent" ? zone.color : "#A89880",
+                          color: zone.color !== "transparent" ? zone.color : "var(--c-text-muted)",
                         }}>
                           {pos}
                         </span>
@@ -487,13 +493,13 @@ export default function PyramidPage() {
                           {team.name}
                           {isMe && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#FF5A1F", marginLeft: 7, letterSpacing: "0.06em" }}>YOU</span>}
                         </div>
-                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880", letterSpacing: "0.04em" }}>
+                        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", letterSpacing: "0.04em" }}>
                           {team.username}
                         </div>
                       </div>
 
                       {/* Played */}
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#6B5E52", textAlign: "center" }}>{team.played}</span>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--c-text-muted)", textAlign: "center" }}>{team.played}</span>
 
                       {/* Won */}
                       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#22C55E", textAlign: "center" }}>{team.won}</span>
@@ -505,14 +511,14 @@ export default function PyramidPage() {
                       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#EF4444", textAlign: "center" }}>{team.lost}</span>
 
                       {/* Points */}
-                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 800, color: "#1C1410", textAlign: "right" }}>
+                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 800, color: "var(--c-text)", textAlign: "right" }}>
                         {Math.round(team.total_points)}
                       </span>
 
                       {/* Form */}
                       <div style={{ display: "flex", gap: 3 }}>
                         {team.form.length === 0 && (
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#C4B8AA" }}>—</span>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>—</span>
                         )}
                         {team.form.map((r, i) => <FormBadge key={i} result={r} />)}
                       </div>
@@ -529,7 +535,7 @@ export default function PyramidPage() {
                             {zone.icon} {zone.label}
                           </span>
                         ) : (
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#C4B8AA" }}>Mid-table</span>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>Mid-table</span>
                         )}
                       </div>
                     </div>
@@ -539,16 +545,16 @@ export default function PyramidPage() {
             </div>
 
             {/* Season progress bar */}
-            <div style={{ marginTop: 20, padding: "16px 20px", background: "white", borderRadius: 12, border: "1.5px solid #EDE5D8" }}>
+            <div style={{ marginTop: 20, padding: "16px 20px", background: "var(--c-bg-elevated)", borderRadius: 12, border: "1.5px solid var(--c-border-strong)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#6B5E52", letterSpacing: "0.06em" }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-muted)", letterSpacing: "0.06em" }}>
                   Season progress
                 </span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#1C1410", fontWeight: 600 }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text)", fontWeight: 600 }}>
                   GW {currentGW || "—"} / {totalGW}
                 </span>
               </div>
-              <div style={{ height: 8, background: "#F0EAE0", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: 8, background: "var(--c-row)", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{
                   height: "100%",
                   width: `${Math.min(100, (currentGW / totalGW) * 100)}%`,
@@ -557,7 +563,7 @@ export default function PyramidPage() {
                   transition: "width 0.6s ease",
                 }} />
               </div>
-              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#A89880", marginTop: 8, letterSpacing: "0.05em" }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", marginTop: 8, letterSpacing: "0.05em" }}>
                 {totalGW - currentGW} gameweeks remaining · Promotion/relegation decided at GW {totalGW}
               </p>
             </div>

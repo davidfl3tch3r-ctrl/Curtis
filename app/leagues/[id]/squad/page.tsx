@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
@@ -120,7 +122,7 @@ function FormBar({ form }: { form: number[] }) {
           <div style={{
             width:"100%", borderRadius:"3px 3px 0 0",
             height: `${(v/max)*28}px`,
-            background: i===form.length-1 ? "#FF5A1F" : "#F0E8DC",
+            background: i===form.length-1 ? "#FF5A1F" : "var(--c-skeleton)",
             transition:"height 0.3s ease",
           }} />
         </div>
@@ -138,8 +140,8 @@ function FixturePill({ fix }: { fix: Fixture }) {
       border: `1px solid ${diffColor}33`,
       display:"flex", gap:4, alignItems:"center",
     }}>
-      <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"#A89880" }}>{fix.a ? "A" : "H"}</span>
-      <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, fontWeight:500, color:"#1C1410" }}>{fix.h}</span>
+      <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-muted)" }}>{fix.a ? "A" : "H"}</span>
+      <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, fontWeight:500, color:"var(--c-text)" }}>{fix.h}</span>
       <span style={{ width:6, height:6, borderRadius:"50%", background:diffColor, flexShrink:0 }} />
     </div>
   );
@@ -170,8 +172,8 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
       <div style={{
         position:"relative", pointerEvents:"all",
         width:400, height:"100vh",
-        background:"#FAF7F2",
-        borderLeft:"1px solid #EDE5D8",
+        background:"var(--c-bg)",
+        borderLeft:"1px solid var(--c-border-strong)",
         display:"flex", flexDirection:"column",
         animation:"slideInRight 0.25s ease",
         overflowY:"auto",
@@ -242,14 +244,14 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
         </div>
 
         {/* Tabs */}
-        <div style={{ display:"flex", gap:0, borderBottom:"1px solid #EDE5D8", background:"white", flexShrink:0 }}>
+        <div style={{ display:"flex", gap:0, borderBottom:"1px solid var(--c-border-strong)", background:"var(--c-bg-elevated)", flexShrink:0 }}>
           {(["overview","stats","fixtures"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex:1, padding:"12px 0",
               fontFamily:"'DM Mono', monospace", fontSize:10,
               letterSpacing:"0.08em", textTransform:"uppercase",
               border:"none", background:"transparent", cursor:"pointer",
-              color: tab===t ? "#FF5A1F" : "#A89880",
+              color: tab===t ? "#FF5A1F" : "var(--c-text-muted)",
               borderBottom: tab===t ? "2px solid #FF5A1F" : "2px solid transparent",
               transition:"all 0.15s",
             }}>{t}</button>
@@ -262,12 +264,12 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
           {tab === "overview" && (
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
               {/* GW form chart */}
-              <div style={{ background:"white", borderRadius:12, border:"1.5px solid #EDE5D8", padding:"16px 18px" }}>
-                <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"#C0B09A", marginBottom:10 }}>GW Points — Last 5</p>
+              <div style={{ background:"var(--c-bg-elevated)", borderRadius:12, border:"1.5px solid var(--c-border-strong)", padding:"16px 18px" }}>
+                <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:10 }}>GW Points — Last 5</p>
                 <FormBar form={player.form} />
                 <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
                   {["GW24","GW25","GW26","GW27","GW28"].map((g,i) => (
-                    <span key={i} style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"#C0B09A", letterSpacing:"0.04em" }}>{g}</span>
+                    <span key={i} style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"var(--c-text-dim)", letterSpacing:"0.04em" }}>{g}</span>
                   ))}
                 </div>
               </div>
@@ -285,19 +287,19 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
                   { label:"Mins Played",  value:player.stats.minsPlayed,     hero:false,        show:true },
                 ].filter(s => s.show !== false).map(s => (
                   <div key={s.label} style={{
-                    background: s.hero ? "#FFF1EC" : "#FAF7F2",
-                    border: `1.5px solid ${s.hero ? "#FDDCCC" : "#EDE5D8"}`,
+                    background: s.hero ? "var(--c-accent-dim)" : "var(--c-bg)",
+                    border: `1.5px solid ${s.hero ? "#FDDCCC" : "var(--c-border-strong)"}`,
                     borderRadius:10, padding:"12px 14px",
                   }}>
-                    <p style={{ fontFamily:"'DM Mono', monospace", fontSize:8, letterSpacing:"0.1em", textTransform:"uppercase", color: s.hero ? "#FF5A1F" : "#C0B09A", marginBottom:5 }}>{s.label}</p>
-                    <p style={{ fontFamily:"'Playfair Display', serif", fontSize:22, fontWeight:900, color: s.hero ? "#FF5A1F" : "#1C1410" }}>{s.value}</p>
+                    <p style={{ fontFamily:"'DM Mono', monospace", fontSize:8, letterSpacing:"0.1em", textTransform:"uppercase", color: s.hero ? "#FF5A1F" : "var(--c-text-dim)", marginBottom:5 }}>{s.label}</p>
+                    <p style={{ fontFamily:"'Playfair Display', serif", fontSize:22, fontWeight:900, color: s.hero ? "#FF5A1F" : "var(--c-text)" }}>{s.value}</p>
                   </div>
                 ))}
               </div>
 
               {/* Ownership note */}
-              <div style={{ background:"white", borderRadius:10, border:"1.5px solid #EDE5D8", padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#A89880", letterSpacing:"0.06em" }}>Owned by you in this league</span>
+              <div style={{ background:"var(--c-bg-elevated)", borderRadius:10, border:"1.5px solid var(--c-border-strong)", padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"var(--c-text-muted)", letterSpacing:"0.06em" }}>Owned by you in this league</span>
                 <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#FF5A1F" }}>Draft Pick</span>
               </div>
             </div>
@@ -320,18 +322,18 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
                   { label:"Mins Played",       val:player.stats.minsPlayed,    max:2700, hero:false },
                 ]},
               ].map(section => (
-                <div key={section.cat} style={{ background:"white", borderRadius:12, border:"1.5px solid #EDE5D8", padding:"14px 16px" }}>
-                  <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"#C0B09A", marginBottom:12 }}>{section.cat}</p>
+                <div key={section.cat} style={{ background:"var(--c-bg-elevated)", borderRadius:12, border:"1.5px solid var(--c-border-strong)", padding:"14px 16px" }}>
+                  <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:12 }}>{section.cat}</p>
                   {section.stats.map(s => (
                     <div key={s.label} style={{ marginBottom:10 }}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color: s.hero ? "#FF5A1F" : "#3D2E22" }}>{s.label}</span>
-                        <span style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color: s.hero ? "#FF5A1F" : "#1C1410" }}>{s.val}</span>
+                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color: s.hero ? "#FF5A1F" : "var(--c-text-muted)" }}>{s.label}</span>
+                        <span style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:700, color: s.hero ? "#FF5A1F" : "var(--c-text)" }}>{s.val}</span>
                       </div>
-                      <div style={{ height:5, background:"#F0E8DC", borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ height:5, background:"var(--c-skeleton)", borderRadius:99, overflow:"hidden" }}>
                         <div style={{
                           height:"100%", borderRadius:99,
-                          background: s.hero ? "linear-gradient(90deg,#FF5A1F,#E8400A)" : "#C0B09A",
+                          background: s.hero ? "linear-gradient(90deg,#FF5A1F,#E8400A)" : "var(--c-text-dim)",
                           width:`${Math.min(100,(s.val/s.max)*100)}%`,
                           transition:"width 0.5s ease",
                         }} />
@@ -345,24 +347,24 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
 
           {tab === "fixtures" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C0B09A", marginBottom:4 }}>
+              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:4 }}>
                 Next Fixtures · Difficulty Rating
               </p>
               {player.fixtures.map((f,i) => {
                 const diffColor = DIFF_COLOR[f.diff] as string;
                 return (
-                  <div key={i} style={{ background:"white", border:"1.5px solid #EDE5D8", borderRadius:11, padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div key={i} style={{ background:"var(--c-bg-elevated)", border:"1.5px solid var(--c-border-strong)", borderRadius:11, padding:"14px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                       <div style={{ width:8, height:8, borderRadius:"50%", background:diffColor }} />
                       <div>
-                        <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"#A89880", marginRight:6 }}>{f.a ? "Away" : "Home"}</span>
-                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:14, fontWeight:600, color:"#1C1410" }}>{f.h}</span>
+                        <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-muted)", marginRight:6 }}>{f.a ? "Away" : "Home"}</span>
+                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:14, fontWeight:600, color:"var(--c-text)" }}>{f.h}</span>
                       </div>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <div style={{ display:"flex", gap:2 }}>
                         {[1,2,3,4,5].map(d => (
-                          <div key={d} style={{ width:8, height:8, borderRadius:2, background: d<=f.diff ? diffColor : "#F0E8DC" }} />
+                          <div key={d} style={{ width:8, height:8, borderRadius:2, background: d<=f.diff ? diffColor : "var(--c-skeleton)" }} />
                         ))}
                       </div>
                       <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:diffColor, letterSpacing:"0.06em" }}>
@@ -373,7 +375,7 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
                 );
               })}
 
-              <div style={{ marginTop:8, padding:"12px 14px", borderRadius:10, background:"#FFF1EC", border:"1.5px solid #FDDCCC" }}>
+              <div style={{ marginTop:8, padding:"12px 14px", borderRadius:10, background:"var(--c-accent-dim)", border:"1.5px solid #FDDCCC" }}>
                 <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color:"#C2410C", fontWeight:600, marginBottom:3 }}>Fixture Insight</p>
                 <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, color:"#92400E", lineHeight:1.5 }}>
                   {player.hero
@@ -394,10 +396,23 @@ function PlayerProfile({ player, onClose }: { player: SquadPlayer; onClose: () =
 export default function SquadPage() {
   const params = useParams();
   const id = params.id as string;
+  const isMobile = useIsMobile();
 
   const [selectedPlayer, setSelectedPlayer] = useState<SquadPlayer | null>(null);
   const [view, setView]       = useState<"squad" | "stats">("squad");
   const [posFilter, setPosFilter] = useState("ALL");
+
+  const navLinks = [
+    { label: "Home",     href: "/" },
+    { label: "Draft",    href: `/leagues/${id}/draft` },
+    { label: "Scoring",  href: `/leagues/${id}/scoring` },
+    { label: "Live",     href: `/leagues/${id}/live` },
+    { label: "Stats",    href: `/leagues/${id}/table` },
+    { label: "Waivers",  href: `/leagues/${id}/waivers` },
+    { label: "Trades",   href: `/leagues/${id}/trades` },
+    { label: "Chat",     href: `/leagues/${id}/chat` },
+    { label: "Messages", href: `/leagues/${id}/messages` },
+  ];
 
   const starters = SQUAD.filter(p => p.starting);
   const bench    = SQUAD.filter(p => !p.starting).sort((a,b) => (a.bench ?? 0) - (b.bench ?? 0));
@@ -412,7 +427,7 @@ export default function SquadPage() {
     : [] as SquadPlayer[];
 
   return (
-    <div style={{ minHeight:"100vh", background:"#FAF7F2", color:"#1C1410" }}>
+    <div style={{ minHeight:"100vh", background:"var(--c-bg)", color:"var(--c-text)" }}>
       <style>{`
         * { box-sizing:border-box; margin:0; padding:0; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -420,18 +435,18 @@ export default function SquadPage() {
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
         .player-card {
-          background:white; border-radius:12px; border:1.5px solid #EDE5D8;
+          background:var(--c-bg-elevated); border-radius:12px; border:1.5px solid var(--c-border-strong);
           padding:14px 16px; cursor:pointer; transition:all 0.18s;
           display:flex; align-items:center; gap:12px;
         }
         .player-card:hover { border-color:#FF5A1F; box-shadow:0 4px 16px rgba(255,90,31,0.12); transform:translateY(-1px); }
-        .player-card.hero { border-color:#FDDCCC; background:#FFF9F7; }
+        .player-card.hero { border-color:#FDDCCC; background:var(--c-accent-dim); }
         .player-card.injured { border-color:#FCA5A5; }
 
         .pos-btn {
-          padding:6px 14px; border-radius:8px; border:1.5px solid #EDE5D8;
+          padding:6px 14px; border-radius:8px; border:1.5px solid var(--c-border-strong);
           background:transparent; font-family:'DM Mono', monospace; font-size:10px;
-          letter-spacing:0.08em; color:#A89880; cursor:pointer; transition:all 0.15s;
+          letter-spacing:0.08em; color:var(--c-text-muted); cursor:pointer; transition:all 0.15s;
         }
         .pos-btn:hover { border-color:#FF5A1F; color:#FF5A1F; }
         .pos-btn.active { background:#FF5A1F; border-color:#FF5A1F; color:white; }
@@ -439,52 +454,28 @@ export default function SquadPage() {
         .view-btn {
           font-family:'DM Mono', monospace; font-size:10px; letter-spacing:0.08em;
           text-transform:uppercase; padding:8px 18px; border-radius:8px; border:none;
-          cursor:pointer; transition:all 0.15s; background:transparent; color:#A89880;
+          cursor:pointer; transition:all 0.15s; background:transparent; color:var(--c-text-muted);
         }
-        .view-btn:hover { color:#1C1410; background:#F0E8DC; }
+        .view-btn:hover { color:var(--c-text); background:var(--c-row); }
         .view-btn.active { background:#FF5A1F; color:white; }
 
         ::-webkit-scrollbar { width:3px; }
-        ::-webkit-scrollbar-thumb { background:#E8D5C0; border-radius:2px; }
+        ::-webkit-scrollbar-thumb { background:var(--c-border-strong); border-radius:2px; }
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        height:58, background:"#FAF7F2", borderBottom:"1px solid #EDE5D8",
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"0 44px", position:"sticky", top:0, zIndex:100,
-      }}>
-        <Link href="/" style={{ display:"flex", alignItems:"center", gap:11, textDecoration:"none" }}>
-          <div style={{ width:34, height:34, background:"linear-gradient(135deg,#FF5A1F,#E8400A)", borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(255,90,31,0.35)" }}>
-            <span style={{ color:"white", fontSize:16 }}>◆</span>
-          </div>
-          <div>
-            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, letterSpacing:"-0.02em", lineHeight:1, color:"#1C1410" }}>CURTIS</div>
-            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, letterSpacing:"0.14em", color:"#FF5A1F", textTransform:"uppercase" }}>Draft Football</div>
-          </div>
-        </Link>
-        <div style={{ display:"flex", gap:28 }}>
-          <Link href="/" style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#A89880", textDecoration:"none" }}>Home</Link>
-          <Link href={`/leagues/${id}/draft`} style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#A89880", textDecoration:"none" }}>Draft</Link>
-          <Link href={`/leagues/${id}/scoring`} style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#A89880", textDecoration:"none" }}>Scoring</Link>
-          <Link href={`/leagues/${id}/live`} style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#A89880", textDecoration:"none" }}>Live</Link>
-          <Link href={`/leagues/${id}/table`} style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#A89880", textDecoration:"none" }}>League</Link>
-          <Link href={`/leagues/${id}/squad`} style={{ fontFamily:"'DM Mono', monospace", fontSize:11, letterSpacing:"0.09em", textTransform:"uppercase", color:"#FF5A1F", textDecoration:"none" }}>Squad</Link>
-        </div>
-        <div style={{ width:32, height:32, borderRadius:"50%", background:"linear-gradient(135deg,#FF5A1F,#E8400A)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono', monospace", fontSize:12, color:"white" }}>JD</div>
-      </nav>
+      <NavBar links={navLinks} activeLabel="Stats" right={<ThemeToggle size="sm" />} />
 
-      <div style={{ maxWidth:1060, margin:"0 auto", padding:"40px 40px" }}>
+      <div style={{ maxWidth:1060, margin:"0 auto", padding: isMobile ? "20px 16px" : "40px 40px" }}>
 
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:28 }}>
           <div>
             <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#FF5A1F", marginBottom:6 }}>The Gaffer&apos;s Cup · GW28</p>
-            <h1 style={{ fontFamily:"'Playfair Display', serif", fontSize:38, fontWeight:900, letterSpacing:"-0.02em", lineHeight:1.05 }}>
+            <h1 style={{ fontFamily:"'Playfair Display', serif", fontSize: isMobile ? 26 : 38, fontWeight:900, letterSpacing:"-0.02em", lineHeight:1.05 }}>
               Interception <span style={{ fontStyle:"italic", color:"#FF5A1F" }}>FC</span>
             </h1>
           </div>
-          <div style={{ display:"flex", gap:4, background:"#F5EFE8", padding:4, borderRadius:10 }}>
+          <div style={{ display:"flex", gap:4, background:"var(--c-row)", padding:4, borderRadius:10 }}>
             {([{id:"squad",label:"Squad View"},{id:"stats",label:"Stats View"}] as const).map(v => (
               <button key={v.id} className={`view-btn${view===v.id?" active":""}`} onClick={() => setView(v.id)}>{v.label}</button>
             ))}
@@ -492,7 +483,7 @@ export default function SquadPage() {
         </div>
 
         {/* Stat strip */}
-        <div style={{ display:"flex", gap:12, marginBottom:28 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap:12, marginBottom:28 }}>
           {[
             { label:"Season Points",  value: totalPts.toLocaleString(),  sub:"Starting XI total",   highlight:false, warn:false },
             { label:"GW28 Points",    value: totalGWPts,                  sub:"This gameweek",        highlight:false, warn:false },
@@ -501,20 +492,20 @@ export default function SquadPage() {
             { label:"Injuries",       value: injured > 0 ? `${injured} doubt` : "All clear", sub: injured > 0 ? "Check fitness" : "Full squad available", highlight:false, warn:injured>0 },
           ].map(s => (
             <div key={s.label} style={{
-              flex:1, background:"white", borderRadius:14,
-              border:`1.5px solid ${s.highlight ? "#FDDCCC" : s.warn ? "#FCA5A5" : "#EDE5D8"}`,
+              flex:1, background:"var(--c-bg-elevated)", borderRadius:14,
+              border:`1.5px solid ${s.highlight ? "#FDDCCC" : s.warn ? "#FCA5A5" : "var(--c-border-strong)"}`,
               padding:"16px 18px",
             }}>
-              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C0B09A", marginBottom:6 }}>{s.label}</p>
-              <p style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color: s.highlight ? "#FF5A1F" : s.warn ? "#DC2626" : "#1C1410", lineHeight:1, marginBottom:3 }}>{s.value}</p>
-              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"#A89880", letterSpacing:"0.04em" }}>{s.sub}</p>
+              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:6 }}>{s.label}</p>
+              <p style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, color: s.highlight ? "#FF5A1F" : s.warn ? "#DC2626" : "var(--c-text)", lineHeight:1, marginBottom:3 }}>{s.value}</p>
+              <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-muted)", letterSpacing:"0.04em" }}>{s.sub}</p>
             </div>
           ))}
         </div>
 
         {/* ── SQUAD VIEW ── */}
         {view === "squad" && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 260px", gap:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 260px", gap:20 }}>
 
             {/* Player cards */}
             <div>
@@ -526,7 +517,7 @@ export default function SquadPage() {
                   <div key={pos} style={{ marginBottom:20 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                       <span style={{ padding:"3px 8px", borderRadius:5, background:pm.bg, border:`1px solid ${pm.border}`, fontFamily:"'DM Mono', monospace", fontSize:9, color:pm.color, letterSpacing:"0.08em" }}>{pos}</span>
-                      <div style={{ flex:1, height:1, background:"#F0E8DC" }} />
+                      <div style={{ flex:1, height:1, background:"var(--c-skeleton)" }} />
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                       {posPlayers.map(p => (
@@ -539,30 +530,30 @@ export default function SquadPage() {
                           {/* Name */}
                           <div style={{ flex:1 }}>
                             <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}>
-                              <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:14, fontWeight:600, color:"#1C1410" }}>{p.name}</span>
+                              <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:14, fontWeight:600, color:"var(--c-text)" }}>{p.name}</span>
                               {p.hero && <span style={{ fontFamily:"'DM Mono', monospace", fontSize:8, background:"#FF5A1F", color:"white", padding:"2px 6px", borderRadius:3 }}>HERO</span>}
                               {p.injury && <span style={{ fontFamily:"'DM Mono', monospace", fontSize:8, background:"#FCA5A5", color:"#7F1D1D", padding:"2px 6px", borderRadius:3 }}>⚠ DOUBT</span>}
                             </div>
-                            <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"#A89880", letterSpacing:"0.04em" }}>{p.clubFull}</span>
+                            <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-muted)", letterSpacing:"0.04em" }}>{p.clubFull}</span>
                           </div>
                           {/* Form mini bars */}
                           <div style={{ display:"flex", alignItems:"flex-end", gap:2, height:20 }}>
                             {p.form.map((v,i) => {
                               const max = Math.max(...p.form);
-                              return <div key={i} style={{ width:5, borderRadius:"2px 2px 0 0", height:`${(v/max)*18}px`, background: i===p.form.length-1 ? "#FF5A1F" : "#E8D5C0" }} />;
+                              return <div key={i} style={{ width:5, borderRadius:"2px 2px 0 0", height:`${(v/max)*18}px`, background: i===p.form.length-1 ? "#FF5A1F" : "var(--c-skeleton)" }} />;
                             })}
                           </div>
                           {/* GW pts */}
                           <div style={{ textAlign:"right", flexShrink:0 }}>
-                            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:22, fontWeight:900, color: p.hero ? "#FF5A1F" : "#1C1410", lineHeight:1 }}>{p.gwPts}</div>
-                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"#C0B09A", marginTop:1 }}>GW28</div>
+                            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:22, fontWeight:900, color: p.hero ? "#FF5A1F" : "var(--c-text)", lineHeight:1 }}>{p.gwPts}</div>
+                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"var(--c-text-dim)", marginTop:1 }}>GW28</div>
                           </div>
                           {/* Season pts */}
                           <div style={{ textAlign:"right", flexShrink:0, paddingLeft:12, borderLeft:"1px solid #F0E8DC" }}>
-                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:13, fontWeight:500, color:"#A89880", lineHeight:1 }}>{p.seasonPts}</div>
-                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"#C0B09A", marginTop:1 }}>Season</div>
+                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:13, fontWeight:500, color:"var(--c-text-muted)", lineHeight:1 }}>{p.seasonPts}</div>
+                            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"var(--c-text-dim)", marginTop:1 }}>Season</div>
                           </div>
-                          <span style={{ color:"#C0B09A", fontSize:12 }}>›</span>
+                          <span style={{ color:"var(--c-text-dim)", fontSize:12 }}>›</span>
                         </div>
                       ))}
                     </div>
@@ -573,23 +564,23 @@ export default function SquadPage() {
               {/* Bench */}
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                  <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C0B09A", padding:"3px 8px", borderRadius:5, background:"#F5EFE8", border:"1px solid #EDE5D8" }}>BENCH</span>
-                  <div style={{ flex:1, height:1, background:"#F0E8DC", borderStyle:"dashed" }} />
+                  <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--c-text-dim)", padding:"3px 8px", borderRadius:5, background:"var(--c-row)", border:"1px solid var(--c-border-strong)" }}>BENCH</span>
+                  <div style={{ flex:1, height:1, background:"var(--c-skeleton)", borderStyle:"dashed" }} />
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {bench.map(p => (
                     <div key={p.id} className="player-card" onClick={() => setSelectedPlayer(p)}
-                      style={{ opacity:0.7, background:"#FDFAF7" }}>
-                      <div style={{ width:8, height:8, borderRadius:"50%", background:"#C0B09A", flexShrink:0 }} />
+                      style={{ opacity:0.7, background:"var(--c-bg-elevated)" }}>
+                      <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--c-text-dim)", flexShrink:0 }} />
                       <div style={{ width:30, height:30, borderRadius:8, background:CLUB_COLORS[p.club]||"#555", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         <span style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"white" }}>{p.club[0]}</span>
                       </div>
                       <div style={{ flex:1 }}>
-                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:13, fontWeight:500, color:"#1C1410" }}>{p.name}</span>
-                        <div style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"#C0B09A", letterSpacing:"0.04em" }}>{p.clubFull} · {p.pos}</div>
+                        <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:13, fontWeight:500, color:"var(--c-text)" }}>{p.name}</span>
+                        <div style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-dim)", letterSpacing:"0.04em" }}>{p.clubFull} · {p.pos}</div>
                       </div>
-                      <div style={{ fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:700, color:"#A89880" }}>{p.gwPts}</div>
-                      <span style={{ color:"#C0B09A", fontSize:12 }}>›</span>
+                      <div style={{ fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:700, color:"var(--c-text-muted)" }}>{p.gwPts}</div>
+                      <span style={{ color:"var(--c-text-dim)", fontSize:12 }}>›</span>
                     </div>
                   ))}
                 </div>
@@ -606,22 +597,22 @@ export default function SquadPage() {
               </div>
 
               {/* Top performers */}
-              <div style={{ background:"white", borderRadius:14, border:"1.5px solid #EDE5D8", padding:"16px 18px" }}>
-                <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"#C0B09A", marginBottom:12 }}>Top Performers · GW28</p>
+              <div style={{ background:"var(--c-bg-elevated)", borderRadius:14, border:"1.5px solid var(--c-border-strong)", padding:"16px 18px" }}>
+                <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:12 }}>Top Performers · GW28</p>
                 {[...starters].sort((a,b)=>b.gwPts-a.gwPts).slice(0,5).map((p,i) => (
-                  <div key={p.id} onClick={() => setSelectedPlayer(p)} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom: i<4?"1px solid #F5EFE8":"none", cursor:"pointer" }}>
-                    <span style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:900, color:"#C0B09A", minWidth:16 }}>#{i+1}</span>
+                  <div key={p.id} onClick={() => setSelectedPlayer(p)} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 0", borderBottom: i<4?"1px solid var(--c-border)":"none", cursor:"pointer" }}>
+                    <span style={{ fontFamily:"'Playfair Display', serif", fontSize:14, fontWeight:900, color:"var(--c-text-dim)", minWidth:16 }}>#{i+1}</span>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, fontWeight:500, color:"#1C1410" }}>{p.name}</div>
-                      <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"#C0B09A" }}>{p.pos} · {p.club}</div>
+                      <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, fontWeight:500, color:"var(--c-text)" }}>{p.name}</div>
+                      <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"var(--c-text-dim)" }}>{p.pos} · {p.club}</div>
                     </div>
-                    <span style={{ fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:900, color: p.hero ? "#FF5A1F" : "#1C1410" }}>{p.gwPts}</span>
+                    <span style={{ fontFamily:"'Playfair Display', serif", fontSize:18, fontWeight:900, color: p.hero ? "#FF5A1F" : "var(--c-text)" }}>{p.gwPts}</span>
                   </div>
                 ))}
               </div>
 
               {/* Curtis hero callout */}
-              <div style={{ background:"#FFF1EC", border:"1.5px solid #FDDCCC", borderRadius:14, padding:"16px 18px" }}>
+              <div style={{ background:"var(--c-accent-dim)", border:"1.5px solid #FDDCCC", borderRadius:14, padding:"16px 18px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
                   <span style={{ fontSize:18 }}>🛡</span>
                   <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"#FF5A1F" }}>Curtis Hero</p>
@@ -641,36 +632,36 @@ export default function SquadPage() {
                 <button key={p} className={`pos-btn${posFilter===p?" active":""}`} onClick={() => setPosFilter(p)}>{p}</button>
               ))}
             </div>
-            <div style={{ background:"white", borderRadius:16, border:"1.5px solid #EDE5D8", overflow:"hidden" }}>
+            <div className="table-scroll" style={{ background:"var(--c-bg-elevated)", borderRadius:16, border:"1.5px solid var(--c-border-strong)", overflow:"hidden" }}>
               {/* Header */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 60px 60px 60px", gap:0, padding:"11px 20px", borderBottom:"1.5px solid #EDE5D8", background:"#FDFAF7" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 60px 60px 60px", gap:0, padding:"11px 20px", borderBottom:"1.5px solid var(--c-border-strong)", background:"var(--c-row)" }}>
                 {["Player","GW28","Season","Goals","Assists","Intcp","Tackles"].map((h,i) => (
-                  <span key={i} style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"#C0B09A", textAlign: i>0?"center":"left" }}>{h}</span>
+                  <span key={i} style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--c-text-dim)", textAlign: i>0?"center":"left" }}>{h}</span>
                 ))}
               </div>
               {filteredSquad.map((p,i) => (
                 <div key={p.id} onClick={() => setSelectedPlayer(p)} style={{
                   display:"grid", gridTemplateColumns:"1fr 60px 60px 60px 60px 60px 60px",
                   gap:0, padding:"11px 20px", alignItems:"center",
-                  borderBottom: i<filteredSquad.length-1 ? "1px solid #F5EFE8":"none",
+                  borderBottom: i<filteredSquad.length-1 ? "1px solid var(--c-border)":"none",
                   cursor:"pointer", transition:"background 0.14s",
-                  background: p.hero ? "#FFF9F7" : "white",
+                  background: p.hero ? "var(--c-accent-dim)" : "var(--c-bg-elevated)",
                 }}
-                onMouseOver={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.background="#FFF7F4"}
-                onMouseOut={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.background=p.hero?"#FFF9F7":"white"}
+                onMouseOver={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.background="var(--c-row-active)"}
+                onMouseOut={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.background=p.hero?"var(--c-accent-dim)":"var(--c-bg-elevated)"}
                 >
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <div style={{ width:8, height:8, borderRadius:"50%", background:CLUB_COLORS[p.club]||"#555" }} />
-                    <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:13, fontWeight:500, color:"#1C1410" }}>{p.name}</span>
+                    <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:13, fontWeight:500, color:"var(--c-text)" }}>{p.name}</span>
                     {p.hero && <span style={{ fontFamily:"'DM Mono', monospace", fontSize:7, background:"#FF5A1F", color:"white", padding:"1px 5px", borderRadius:3 }}>HERO</span>}
-                    {!p.starting && <span style={{ fontFamily:"'DM Mono', monospace", fontSize:7, background:"#F0E8DC", color:"#A89880", padding:"1px 5px", borderRadius:3 }}>BENCH</span>}
+                    {!p.starting && <span style={{ fontFamily:"'DM Mono', monospace", fontSize:7, background:"var(--c-skeleton)", color:"var(--c-text-muted)", padding:"1px 5px", borderRadius:3 }}>BENCH</span>}
                   </div>
                   {[p.gwPts, p.seasonPts, p.stats.goals, p.stats.assists, p.stats.interceptions, p.stats.tackles].map((v,ci) => (
                     <span key={ci} style={{
                       fontFamily: ci<2 ? "'Playfair Display', serif" : "'DM Mono', monospace",
                       fontSize: ci<2 ? 16 : 12,
                       fontWeight: ci<2 ? 700 : 400,
-                      color: (ci===0 && p.hero) ? "#FF5A1F" : (ci===4 && p.hero) ? "#FF5A1F" : "#A89880",
+                      color: (ci===0 && p.hero) ? "#FF5A1F" : (ci===4 && p.hero) ? "#FF5A1F" : "var(--c-text-muted)",
                       textAlign:"center",
                     }}>{v}</span>
                   ))}

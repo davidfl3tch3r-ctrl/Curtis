@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 type PublicDraft = {
   id: string;
@@ -39,6 +42,7 @@ function Countdown({ target }: { target: string }) {
 
 export default function DraftQueuePage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<PublicDraft[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,8 +187,8 @@ export default function DraftQueuePage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "9px 12px",
-    fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#F5F0E8",
-    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+    fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text)" as string,
+    background: "var(--c-input)" as string, border: "1px solid var(--c-input-border)" as string,
     borderRadius: 8, outline: "none", boxSizing: "border-box",
   };
 
@@ -195,33 +199,35 @@ export default function DraftQueuePage() {
   })();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0F0D0B", color: "#F5F0E8" }}>
+    <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #3A2E24; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        input::placeholder { color: #4A3E34; }
+        input::placeholder { color: var(--c-text-dim); }
         input:focus { border-color: rgba(255,90,31,0.5) !important; }
       `}</style>
 
-      {/* Nav */}
-      <div style={{ height: 52, background: "#0A0806", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 24px", gap: 20 }}>
-        <Link href="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 900, letterSpacing: "-0.02em", color: "#F5F0E8", textDecoration: "none" }}>CURTIS</Link>
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5A1F" }}>Public Draft Queue</span>
-        <div style={{ flex: 1 }} />
-        <Link href="/" style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.08em", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>← Hub</Link>
-      </div>
+      <NavBar
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Pyramid", href: "/pyramid" },
+          { label: "Fan Leagues", href: "/fan-leagues" },
+          { label: "Mock Draft", href: "/mock-draft" },
+        ]}
+        activeLabel="Mock Draft"
+        right={<ThemeToggle size="sm" />}
+      />
 
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 20px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: isMobile ? "24px 16px" : "32px 20px" }}>
 
         {/* Header */}
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, marginBottom: 8 }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 26 : 32, fontWeight: 900, marginBottom: 8 }}>
             Public Draft Queue
           </h1>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#6B5E52", lineHeight: 1.5 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "var(--c-text-muted)", lineHeight: 1.5 }}>
             Join a draft solo. Fill up with strangers, or bots if not enough humans sign up in time.
           </p>
         </div>
@@ -233,9 +239,10 @@ export default function DraftQueuePage() {
             width: "100%", padding: "14px", borderRadius: 12, marginBottom: 16,
             border: `1px solid ${showCreate ? "rgba(255,90,31,0.4)" : "rgba(255,255,255,0.1)"}`,
             background: showCreate ? "rgba(255,90,31,0.08)" : "rgba(255,255,255,0.03)",
-            color: showCreate ? "#FF5A1F" : "#A89880",
+            color: showCreate ? "#FF5A1F" : "var(--c-text-muted)",
             fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.1em",
             textTransform: "uppercase", cursor: "pointer", transition: "all 0.15s",
+            minHeight: 44,
           }}
         >
           {showCreate ? "✕ Cancel" : "+ Create New Public Draft"}
@@ -243,29 +250,29 @@ export default function DraftQueuePage() {
 
         {/* Create form */}
         {showCreate && (
-          <div style={{ background: "#1A1612", borderRadius: 14, padding: "24px", border: "1.5px solid rgba(255,90,31,0.2)", marginBottom: 24 }}>
+          <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, padding: "24px", border: "1.5px solid rgba(255,90,31,0.2)", marginBottom: 24 }}>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "#FF5A1F", marginBottom: 16 }}>
               New Public Draft
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Draft Name</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 6 }}>Draft Name</div>
                 <input style={inputStyle} placeholder="e.g. Friday Night Draft" value={newName} onChange={e => setNewName(e.target.value)} />
               </div>
               <div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Your Team Name</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 6 }}>Your Team Name</div>
                 <input style={inputStyle} placeholder="e.g. Interception FC" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 20 }}>
               <div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Draft Starts At</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 6 }}>Draft Starts At</div>
                 <input type="datetime-local" style={inputStyle} defaultValue={defaultStart} onChange={e => setNewStartsAt(e.target.value)} />
               </div>
               <div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Managers (target)</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 6 }}>Managers (target)</div>
                 <select
                   value={newTarget}
                   onChange={e => setNewTarget(Number(e.target.value))}
@@ -287,10 +294,11 @@ export default function DraftQueuePage() {
               disabled={creating || !newName.trim() || !newTeamName.trim() || !newStartsAt}
               style={{
                 width: "100%", padding: "12px", borderRadius: 8, border: "none",
-                background: creating ? "#4A3E34" : "linear-gradient(135deg,#FF5A1F,#E8400A)",
+                background: creating ? "var(--c-skeleton)" : "linear-gradient(135deg,#FF5A1F,#E8400A)",
                 color: "white", fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600,
                 cursor: creating ? "not-allowed" : "pointer",
                 boxShadow: creating ? "none" : "0 3px 12px rgba(255,90,31,0.3)",
+                minHeight: 44,
               }}
             >
               {creating ? "Creating…" : "Create Draft + Join as Manager 1"}
@@ -300,11 +308,11 @@ export default function DraftQueuePage() {
 
         {/* Draft list */}
         {loading ? (
-          <div style={{ padding: "60px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A3E34", letterSpacing: "0.1em" }}>Loading…</div>
+          <div style={{ padding: "60px 0", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)", letterSpacing: "0.1em" }}>Loading…</div>
         ) : drafts.length === 0 ? (
           <div style={{ padding: "60px 0", textAlign: "center" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#4A3E34", marginBottom: 10 }}>No open drafts right now</div>
-            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#3A2E24" }}>Be the first — create one above.</p>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "var(--c-text-dim)", marginBottom: 10 }}>No open drafts right now</div>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "var(--c-border-strong)" }}>Be the first — create one above.</p>
           </div>
         ) : (
           drafts.map(draft => {
@@ -315,14 +323,14 @@ export default function DraftQueuePage() {
             const pastDeadline = draft.draft_starts_at ? new Date(draft.draft_starts_at) < new Date() : false;
 
             return (
-              <div key={draft.id} style={{ background: "#1A1612", borderRadius: 14, padding: "20px 24px", border: `1.5px solid ${alreadyIn ? "rgba(255,90,31,0.25)" : "rgba(255,255,255,0.06)"}`, marginBottom: 12, transition: "border-color 0.15s" }}>
+              <div key={draft.id} style={{ background: "var(--c-bg-elevated)", borderRadius: 14, padding: "20px 24px", border: `1.5px solid ${alreadyIn ? "rgba(255,90,31,0.25)" : "var(--c-border)"}`, marginBottom: 12, transition: "border-color 0.15s" }}>
 
                 {/* Top row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                   <div>
-                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "#F5F0E8", marginBottom: 3 }}>{draft.name}</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "var(--c-text)", marginBottom: 3 }}>{draft.name}</div>
                     <div style={{ display: "flex", gap: 12 }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "#4A3E34", letterSpacing: "0.08em" }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.08em" }}>
                         {draft.draft_type?.toUpperCase()} · {draft.squad_size} rounds · {draft.pick_time_seconds}s clock
                       </span>
                     </div>
@@ -337,16 +345,16 @@ export default function DraftQueuePage() {
                 {/* Progress bar */}
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: isFull ? "#16A34A" : "#A89880" }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: isFull ? "#16A34A" : "var(--c-text-muted)" }}>
                       {draft.teamCount} / {draft.target_teams} managers joined
                     </span>
                     {draft.draft_starts_at && (
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: pastDeadline ? "#FF5A1F" : "#6B5E52" }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: pastDeadline ? "#FF5A1F" : "var(--c-text-muted)" }}>
                         {pastDeadline ? "Starting now…" : <>Starts in <Countdown target={draft.draft_starts_at} /></>}
                       </span>
                     )}
                   </div>
-                  <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: 4, background: "var(--c-border)", borderRadius: 99, overflow: "hidden" }}>
                     <div style={{ height: "100%", borderRadius: 99, background: isFull ? "#16A34A" : "linear-gradient(90deg,#FF5A1F,#E8400A)", width: `${pct}%`, transition: "width 0.4s ease" }} />
                   </div>
                 </div>
@@ -362,7 +370,7 @@ export default function DraftQueuePage() {
                     Go to Draft Room →
                   </Link>
                 ) : isFull ? (
-                  <div style={{ textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4A3E34", letterSpacing: "0.06em", padding: "10px 0" }}>
+                  <div style={{ textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", letterSpacing: "0.06em", padding: "10px 0" }}>
                     Draft is full
                   </div>
                 ) : isJoining ? (
@@ -378,13 +386,13 @@ export default function DraftQueuePage() {
                     <button
                       onClick={() => handleJoin(draft)}
                       disabled={joining || !teamName.trim()}
-                      style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: joining ? "#4A3E34" : "#FF5A1F", color: "white", fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.06em", cursor: joining ? "not-allowed" : "pointer", flexShrink: 0 }}
+                      style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: joining ? "var(--c-skeleton)" : "#FF5A1F", color: "white", fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.06em", cursor: joining ? "not-allowed" : "pointer", flexShrink: 0 }}
                     >
                       {joining ? "…" : "Confirm"}
                     </button>
                     <button
                       onClick={() => { setJoiningId(null); setTeamName(""); setJoinError(""); }}
-                      style={{ padding: "9px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "#6B5E52", fontFamily: "'DM Mono', monospace", fontSize: 11, cursor: "pointer", flexShrink: 0 }}
+                      style={{ padding: "9px 14px", borderRadius: 8, border: "1px solid var(--c-border)", background: "transparent", color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace", fontSize: 11, cursor: "pointer", flexShrink: 0 }}
                     >
                       ✕
                     </button>
@@ -394,13 +402,13 @@ export default function DraftQueuePage() {
                     onClick={() => { setJoiningId(draft.id); setJoinError(""); setTeamName(""); }}
                     style={{
                       width: "100%", padding: "10px", borderRadius: 8,
-                      border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
-                      color: "#A89880", fontFamily: "'DM Mono', monospace", fontSize: 11,
+                      border: "1px solid var(--c-border)", background: "var(--c-input)",
+                      color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace", fontSize: 11,
                       letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer",
-                      transition: "all 0.15s",
+                      transition: "all 0.15s", minHeight: 44,
                     }}
                     onMouseOver={e => { (e.target as HTMLButtonElement).style.background = "rgba(255,90,31,0.08)"; (e.target as HTMLButtonElement).style.color = "#FF5A1F"; }}
-                    onMouseOut={e => { (e.target as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; (e.target as HTMLButtonElement).style.color = "#A89880"; }}
+                    onMouseOut={e => { (e.target as HTMLButtonElement).style.background = "var(--c-input)"; (e.target as HTMLButtonElement).style.color = "var(--c-text-muted)"; }}
                   >
                     Join Draft
                   </button>

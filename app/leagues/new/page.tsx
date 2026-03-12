@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
@@ -100,7 +103,7 @@ function Stepper({ step }: { step: number }) {
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
               <div style={{
                 width:40, height:40, borderRadius:12,
-                background: done ? "#FF5A1F" : active ? "#1C1410" : "#F0E8DC",
+                background: done ? "#FF5A1F" : active ? "var(--c-text)" : "var(--c-skeleton)",
                 border: active ? "2px solid #FF5A1F" : "2px solid transparent",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 transition:"all 0.3s",
@@ -108,14 +111,14 @@ function Stepper({ step }: { step: number }) {
               }}>
                 {done
                   ? <span style={{color:"white",fontSize:14}}>✓</span>
-                  : <span style={{color: active ? "white" : "#A89880", fontSize:15}}>{s.icon}</span>
+                  : <span style={{color: active ? "white" : "var(--c-text-muted)", fontSize:15}}>{s.icon}</span>
                 }
               </div>
               <div style={{ textAlign:"center" }}>
                 <div style={{
                   fontFamily:"'DM Mono', monospace", fontSize:9,
                   letterSpacing:"0.1em", textTransform:"uppercase",
-                  color: active ? "#FF5A1F" : done ? "#1C1410" : "#C0B09A",
+                  color: active ? "#FF5A1F" : done ? "var(--c-text)" : "var(--c-text-dim)",
                   fontWeight: active ? 500 : 400,
                 }}>{s.label}</div>
               </div>
@@ -123,7 +126,7 @@ function Stepper({ step }: { step: number }) {
             {i < STEPS.length-1 && (
               <div style={{
                 flex:1, height:2, margin:"0 8px", marginBottom:22,
-                background: done ? "#FF5A1F" : "#EDE5D8",
+                background: done ? "#FF5A1F" : "var(--c-border-strong)",
                 transition:"background 0.3s",
               }} />
             )}
@@ -140,8 +143,8 @@ function OptionCard({ label, sub, selected, onClick, icon }: {
   return (
     <div onClick={onClick} style={{
       padding:"16px 18px", borderRadius:12, cursor:"pointer",
-      border: `2px solid ${selected ? "#FF5A1F" : "#EDE5D8"}`,
-      background: selected ? "#FFF7F4" : "white",
+      border: `2px solid ${selected ? "#FF5A1F" : "var(--c-border-strong)"}`,
+      background: selected ? "var(--c-accent-dim)" : "var(--c-bg-elevated)",
       transition:"all 0.18s",
       boxShadow: selected ? "0 4px 16px rgba(255,90,31,0.12)" : "none",
     }}>
@@ -150,14 +153,14 @@ function OptionCard({ label, sub, selected, onClick, icon }: {
         <div>
           <div style={{
             fontFamily:"'DM Sans', sans-serif", fontSize:14, fontWeight:600,
-            color: selected ? "#FF5A1F" : "#1C1410",
+            color: selected ? "#FF5A1F" : "var(--c-text)",
           }}>{label}</div>
-          {sub && <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#A89880", marginTop:2, letterSpacing:"0.04em" }}>{sub}</div>}
+          {sub && <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"var(--c-text-muted)", marginTop:2, letterSpacing:"0.04em" }}>{sub}</div>}
         </div>
         <div style={{ marginLeft:"auto" }}>
           <div style={{
             width:18, height:18, borderRadius:"50%",
-            border:`2px solid ${selected ? "#FF5A1F" : "#D0C4B4"}`,
+            border:`2px solid ${selected ? "#FF5A1F" : "var(--c-border-strong)"}`,
             background: selected ? "#FF5A1F" : "transparent",
             display:"flex", alignItems:"center", justifyContent:"center",
           }}>
@@ -173,21 +176,21 @@ function NumberStepper({ value, min, max, onChange, label, unit="" }: {
   value: number; min: number; max: number; onChange: (v: number) => void; label: string; unit?: string;
 }) {
   return (
-    <div style={{ background:"white", border:"1.5px solid #EDE5D8", borderRadius:12, padding:"16px 20px" }}>
-      <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"#A89880", marginBottom:10 }}>{label}</div>
+    <div style={{ background:"var(--c-bg-elevated)", border:"1.5px solid var(--c-border-strong)", borderRadius:12, padding:"16px 20px" }}>
+      <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--c-text-muted)", marginBottom:10 }}>{label}</div>
       <div style={{ display:"flex", alignItems:"center", gap:16 }}>
         <button onClick={() => onChange(Math.max(min, value-1))} style={{
-          width:36, height:36, borderRadius:9, border:"1.5px solid #EDE5D8",
-          background:"#FAF7F2", cursor:"pointer", fontSize:18, color:"#A89880",
+          width:36, height:36, borderRadius:9, border:"1.5px solid var(--c-border-strong)",
+          background:"var(--c-bg)", cursor:"pointer", fontSize:18, color:"var(--c-text-muted)",
           display:"flex", alignItems:"center", justifyContent:"center",
           transition:"all 0.15s",
         }}>−</button>
-        <div style={{ fontFamily:"'Playfair Display', serif", fontSize:32, fontWeight:900, color:"#1C1410", minWidth:40, textAlign:"center" }}>
-          {value}<span style={{ fontSize:14, color:"#A89880", fontFamily:"'DM Mono', monospace" }}>{unit}</span>
+        <div style={{ fontFamily:"'Playfair Display', serif", fontSize:32, fontWeight:900, color:"var(--c-text)", minWidth:40, textAlign:"center" }}>
+          {value}<span style={{ fontSize:14, color:"var(--c-text-muted)", fontFamily:"'DM Mono', monospace" }}>{unit}</span>
         </div>
         <button onClick={() => onChange(Math.min(max, value+1))} style={{
-          width:36, height:36, borderRadius:9, border:"1.5px solid #EDE5D8",
-          background:"#FAF7F2", cursor:"pointer", fontSize:18, color:"#FF5A1F",
+          width:36, height:36, borderRadius:9, border:"1.5px solid var(--c-border-strong)",
+          background:"var(--c-bg)", cursor:"pointer", fontSize:18, color:"#FF5A1F",
           display:"flex", alignItems:"center", justifyContent:"center",
           transition:"all 0.15s",
         }}>+</button>
@@ -207,7 +210,7 @@ function StepBasics({ data, set }: { data: BasicsData; set: (d: BasicsData) => v
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:8 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:8 }}>
           League Name
         </label>
         <input
@@ -217,17 +220,17 @@ function StepBasics({ data, set }: { data: BasicsData; set: (d: BasicsData) => v
           style={{
             width:"100%", padding:"16px 18px",
             fontFamily:"'Playfair Display', serif", fontSize:22, fontWeight:700,
-            border:"2px solid #EDE5D8", borderRadius:12, outline:"none",
-            background:"white", color:"#1C1410",
+            border:"2px solid var(--c-input-border)", borderRadius:12, outline:"none",
+            background:"var(--c-input)", color:"var(--c-text)",
             transition:"border-color 0.2s",
           }}
           onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="#FF5A1F"}
-          onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="#EDE5D8"}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="var(--c-input-border)"}
         />
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:8 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:8 }}>
           Your Team Name
         </label>
         <input
@@ -237,17 +240,17 @@ function StepBasics({ data, set }: { data: BasicsData; set: (d: BasicsData) => v
           style={{
             width:"100%", padding:"14px 18px",
             fontFamily:"'DM Sans', sans-serif", fontSize:16,
-            border:"2px solid #EDE5D8", borderRadius:12, outline:"none",
-            background:"white", color:"#1C1410",
+            border:"2px solid var(--c-input-border)", borderRadius:12, outline:"none",
+            background:"var(--c-input)", color:"var(--c-text)",
             transition:"border-color 0.2s",
           }}
           onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="#FF5A1F"}
-          onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="#EDE5D8"}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor="var(--c-input-border)"}
         />
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Privacy
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -269,7 +272,7 @@ function StepBasics({ data, set }: { data: BasicsData; set: (d: BasicsData) => v
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           League Format
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -304,7 +307,7 @@ function StepTeams({ data, set }: { data: TeamsData; set: (d: TeamsData) => void
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Formation Rules
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
@@ -315,7 +318,7 @@ function StepTeams({ data, set }: { data: TeamsData; set: (d: TeamsData) => void
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Transfers
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -333,7 +336,7 @@ function StepDraft({ data, set }: { data: DraftData; set: (d: DraftData) => void
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Draft Type
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -351,16 +354,16 @@ function StepDraft({ data, set }: { data: DraftData; set: (d: DraftData) => void
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Time Per Pick
         </label>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           {PICK_TIMES.map(t => (
             <button key={t} onClick={() => set({...data, pickTime:t})} style={{
               padding:"10px 20px", borderRadius:10,
-              border:`2px solid ${data.pickTime === t ? "#FF5A1F" : "#EDE5D8"}`,
-              background: data.pickTime === t ? "#FF5A1F" : "white",
-              color: data.pickTime === t ? "white" : "#A89880",
+              border:`2px solid ${data.pickTime === t ? "#FF5A1F" : "var(--c-input-border)"}`,
+              background: data.pickTime === t ? "#FF5A1F" : "var(--c-bg-elevated)",
+              color: data.pickTime === t ? "white" : "var(--c-text-muted)",
               fontFamily:"'DM Mono', monospace", fontSize:12,
               cursor:"pointer", transition:"all 0.15s",
             }}>{t}</button>
@@ -369,7 +372,7 @@ function StepDraft({ data, set }: { data: DraftData; set: (d: DraftData) => void
       </div>
 
       <div>
-        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"#A89880", display:"block", marginBottom:10 }}>
+        <label style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-muted)", display:"block", marginBottom:10 }}>
           Autopick if Time Expires
         </label>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -378,7 +381,7 @@ function StepDraft({ data, set }: { data: DraftData; set: (d: DraftData) => void
         </div>
       </div>
 
-      <div style={{ background:"#FFF7F4", borderRadius:12, padding:"16px 18px", border:"1.5px solid #FDDCCC" }}>
+      <div style={{ background:"var(--c-accent-dim)", borderRadius:12, padding:"16px 18px", border:"1.5px solid #FDDCCC" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
           <span style={{ fontSize:18, marginTop:1 }}>💡</span>
           <div>
@@ -424,13 +427,13 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
         ].map(p => (
           <button key={p.label} onClick={() => set({...data, scores:{...DEFAULT_SCORES}})} style={{
             padding:"8px 14px", borderRadius:8,
-            border:"1.5px solid #EDE5D8", background:"white",
+            border:"1.5px solid var(--c-border-strong)", background:"var(--c-bg-elevated)",
             fontFamily:"'DM Mono', monospace", fontSize:10,
-            letterSpacing:"0.06em", color:"#A89880", cursor:"pointer",
+            letterSpacing:"0.06em", color:"var(--c-text-muted)", cursor:"pointer",
             transition:"all 0.15s",
           }}
           onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => {(e.currentTarget as HTMLButtonElement).style.borderColor="#FF5A1F";(e.currentTarget as HTMLButtonElement).style.color="#FF5A1F"}}
-          onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {(e.currentTarget as HTMLButtonElement).style.borderColor="#EDE5D8";(e.currentTarget as HTMLButtonElement).style.color="#A89880"}}
+          onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {(e.currentTarget as HTMLButtonElement).style.borderColor="var(--c-border-strong)";(e.currentTarget as HTMLButtonElement).style.color="var(--c-text-muted)"}}
           >{p.label}</button>
         ))}
       </div>
@@ -443,12 +446,12 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
           return (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
               padding:"8px 16px", borderRadius:"10px 10px 0 0",
-              border:`1.5px solid ${isActive ? m.color : "#EDE5D8"}`,
-              borderBottom: isActive ? `1.5px solid white` : `1.5px solid #EDE5D8`,
-              background: isActive ? "white" : "#FAF7F2",
+              border:`1.5px solid ${isActive ? m.color : "var(--c-border-strong)"}`,
+              borderBottom: isActive ? `1.5px solid var(--c-bg-elevated)` : `1.5px solid var(--c-border-strong)`,
+              background: isActive ? "var(--c-bg-elevated)" : "var(--c-bg)",
               fontFamily:"'DM Mono', monospace", fontSize:10,
               letterSpacing:"0.08em", textTransform:"uppercase",
-              color: isActive ? m.color : "#A89880",
+              color: isActive ? m.color : "var(--c-text-muted)",
               cursor:"pointer", transition:"all 0.15s",
               marginBottom: isActive ? "-1.5px" : 0,
               zIndex: isActive ? 2 : 1, position:"relative",
@@ -459,7 +462,7 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
 
       {/* Table card */}
       <div style={{
-        background:"white", borderRadius:"0 12px 12px 12px",
+        background:"var(--c-bg-elevated)", borderRadius:"0 12px 12px 12px",
         border:`1.5px solid ${meta.color}`,
         overflow:"hidden", position:"relative", zIndex:1,
       }}>
@@ -467,7 +470,7 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
         <div style={{
           display:"grid", gridTemplateColumns:"1fr 64px 64px 64px 64px 90px",
           gap:8, padding:"12px 20px 10px",
-          borderBottom:"1px solid #F5EFE8",
+          borderBottom:"1px solid var(--c-border)",
           background: meta.light,
         }}>
           <span style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color: meta.color }}>Stat</span>
@@ -486,10 +489,10 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
               <div key={cat.label} style={{
                 display:"grid", gridTemplateColumns:"1fr 64px 64px 64px 64px 90px",
                 gap:8, padding:"8px 8px", alignItems:"center",
-                borderBottom: idx < filtered.length-1 ? "1px solid #FAF5F0" : "none",
+                borderBottom: idx < filtered.length-1 ? "1px solid var(--c-border)" : "none",
                 borderRadius:6,
               }}>
-                <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color:"#3D2E22", display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color:"var(--c-text-muted)", display:"flex", alignItems:"center", gap:6 }}>
                   <span style={{ fontSize:12 }}>{cat.icon}</span>
                   {cat.label}
                 </span>
@@ -502,13 +505,13 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
                       style={{
                         width:"100%", padding:"7px 4px", textAlign:"center",
                         fontFamily:"'DM Mono', monospace", fontSize:12,
-                        border:`1.5px solid #E8E0D5`, borderRadius:7, outline:"none",
-                        background:"white",
-                        color: num < 0 ? "#B91C1C" : num > 0 ? "#166534" : "#999",
+                        border:`1.5px solid var(--c-input-border)`, borderRadius:7, outline:"none",
+                        background:"var(--c-input)",
+                        color: num < 0 ? "#B91C1C" : num > 0 ? "#166534" : "var(--c-text-dim)",
                         transition:"all 0.15s",
                       }}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = meta.color; e.target.style.boxShadow = `0 0 0 2px ${meta.color}22`; }}
-                      onBlur={(e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = "#E8E0D5"; e.target.style.boxShadow = "none"; }}
+                      onBlur={(e: React.FocusEvent<HTMLInputElement>) => { e.target.style.borderColor = "var(--c-input-border)"; e.target.style.boxShadow = "none"; }}
                     />
                   );
                 })}
@@ -519,10 +522,10 @@ function StepScoring({ data, set }: { data: ScoringData; set: (d: ScoringData) =
                   set({...data, scores:updated});
                 }} style={{
                   padding:"6px 10px", borderRadius:7,
-                  border:`1.5px solid ${allSame ? meta.color : "#EDE5D8"}`,
-                  background: allSame ? meta.light : "white",
+                  border:`1.5px solid ${allSame ? meta.color : "var(--c-border-strong)"}`,
+                  background: allSame ? meta.light : "var(--c-bg-elevated)",
                   fontFamily:"'DM Mono', monospace", fontSize:9,
-                  color: allSame ? meta.color : "#C0B09A",
+                  color: allSame ? meta.color : "var(--c-text-dim)",
                   cursor:"pointer", letterSpacing:"0.06em", textTransform:"uppercase",
                   transition:"all 0.15s",
                 }}>
@@ -572,10 +575,10 @@ function StepReview({ data }: { data: { basics: BasicsData; teams: TeamsData; dr
           { label:"Transfers", value: ({ none:"No Transfers", waiver:"Waiver Wire", free:"Free Agency", trade:"Trade Window" } as Record<string,string>)[data.teams.transfers] || "None", sub:"Season format" },
           { label:"Scoring",   value: `${totalStats} Stats`,                         sub: customised > 0 ? `${customised} customised from default` : "CURTIS default scoring" },
         ].map(s => (
-          <div key={s.label} style={{ background:"white", border:"1.5px solid #EDE5D8", borderRadius:12, padding:"16px 18px" }}>
-            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"#C0B09A", marginBottom:5 }}>{s.label}</p>
-            <p style={{ fontFamily:"'Playfair Display', serif", fontSize:17, fontWeight:700, color:"#1C1410", marginBottom:2 }}>{s.value}</p>
-            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#A89880", letterSpacing:"0.04em" }}>{s.sub}</p>
+          <div key={s.label} style={{ background:"var(--c-bg-elevated)", border:"1.5px solid var(--c-border-strong)", borderRadius:12, padding:"16px 18px" }}>
+            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:5 }}>{s.label}</p>
+            <p style={{ fontFamily:"'Playfair Display', serif", fontSize:17, fontWeight:700, color:"var(--c-text)", marginBottom:2 }}>{s.value}</p>
+            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"var(--c-text-muted)", letterSpacing:"0.04em" }}>{s.sub}</p>
           </div>
         ))}
       </div>
@@ -600,7 +603,7 @@ function StepReview({ data }: { data: { basics: BasicsData; teams: TeamsData; dr
       </div>
 
       {/* Curtis stamp */}
-      <div style={{ background:"#FFF1EC", border:"1.5px solid #FDDCCC", borderRadius:12, padding:"14px 18px", display:"flex", alignItems:"center", gap:12 }}>
+      <div style={{ background:"var(--c-accent-dim)", border:"1.5px solid #FDDCCC", borderRadius:12, padding:"14px 18px", display:"flex", alignItems:"center", gap:12 }}>
         <span style={{ fontSize:22 }}>◆</span>
         <div>
           <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:13, fontWeight:600, color:"#C2410C" }}>Ready to run the CURTIS way</p>
@@ -615,6 +618,7 @@ function StepReview({ data }: { data: { basics: BasicsData; teams: TeamsData; dr
 
 export default function LeagueSetupPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState(1);
   const [launched, setLaunched] = useState(false);
 
@@ -718,7 +722,7 @@ export default function LeagueSetupPage() {
       : `/join/${createdLeague.invite_code}`;
 
     return (
-      <div style={{ minHeight:"100vh", background:"#FAF7F2", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:24, padding:"24px" }}>
+      <div style={{ minHeight:"100vh", background:"var(--c-bg)", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:24, padding:"24px" }}>
         <div style={{
           width:80, height:80, borderRadius:20,
           background:"linear-gradient(135deg,#FF5A1F,#E8400A)",
@@ -727,10 +731,10 @@ export default function LeagueSetupPage() {
         }}>◆</div>
 
         <div style={{ textAlign:"center", maxWidth:480 }}>
-          <h1 style={{ fontFamily:"'Playfair Display', serif", fontSize:42, fontWeight:900, color:"#1C1410", marginBottom:8 }}>
+          <h1 style={{ fontFamily:"'Playfair Display', serif", fontSize:42, fontWeight:900, color:"var(--c-text)", marginBottom:8 }}>
             <span style={{ fontStyle:"italic", color:"#FF5A1F" }}>{createdLeague.name}</span> is live.
           </h1>
-          <p style={{ fontFamily:"'DM Mono', monospace", fontSize:12, color:"#A89880", letterSpacing:"0.08em" }}>
+          <p style={{ fontFamily:"'DM Mono', monospace", fontSize:12, color:"var(--c-text-muted)", letterSpacing:"0.08em" }}>
             Share this link to invite your managers
           </p>
         </div>
@@ -777,8 +781,8 @@ export default function LeagueSetupPage() {
           }}>Go to Draft Room →</button>
           <button onClick={() => router.push("/")} style={{
             padding:"12px 24px", borderRadius:10,
-            border:"1.5px solid #EDE5D8", background:"white",
-            color:"#A89880", fontFamily:"'DM Mono', monospace", fontSize:12,
+            border:"1.5px solid var(--c-border-strong)", background:"var(--c-bg-elevated)",
+            color:"var(--c-text-muted)", fontFamily:"'DM Mono', monospace", fontSize:12,
             letterSpacing:"0.08em", cursor:"pointer",
           }}>League Hub</button>
         </div>
@@ -787,43 +791,19 @@ export default function LeagueSetupPage() {
   }
 
   return (
-    <div style={{ minHeight:"100vh", background:"#FAF7F2", color:"#1C1410" }}>
+    <div style={{ minHeight:"100vh", background:"var(--c-bg)", color:"var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing:border-box; margin:0; padding:0; }
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         .step-body { animation: fadeUp 0.3s ease; }
         ::-webkit-scrollbar { width:3px; }
-        ::-webkit-scrollbar-thumb { background:#E8D5C0; border-radius:2px; }
+        ::-webkit-scrollbar-thumb { background:var(--c-skeleton); border-radius:2px; }
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        height:58, background:"#FAF7F2", borderBottom:"1px solid #EDE5D8",
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"0 44px", position:"sticky", top:0, zIndex:100,
-      }}>
-        <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-          <div style={{
-            width:34, height:34,
-            background:"linear-gradient(135deg,#FF5A1F,#E8400A)",
-            borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center",
-            boxShadow:"0 3px 10px rgba(255,90,31,0.35)",
-          }}>
-            <span style={{ color:"white", fontSize:16 }}>◆</span>
-          </div>
-          <div>
-            <div style={{ fontFamily:"'Playfair Display', serif", fontSize:20, fontWeight:900, letterSpacing:"-0.02em", lineHeight:1 }}>CURTIS</div>
-            <div style={{ fontFamily:"'DM Mono', monospace", fontSize:8, letterSpacing:"0.14em", color:"#FF5A1F", textTransform:"uppercase" }}>Draft Football</div>
-          </div>
-        </div>
-        <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#A89880", letterSpacing:"0.08em" }}>
-          New League Setup
-        </div>
-        <div style={{ width:34 }} />
-      </nav>
+      <NavBar links={[]} showThemeToggle={true} right={<ThemeToggle size="sm" />} />
 
-      <div style={{ maxWidth:680, margin:"0 auto", padding:"48px 32px 80px" }}>
+      <div style={{ maxWidth:680, margin:"0 auto", padding: isMobile ? "28px 16px 60px" : "48px 32px 80px" }}>
 
         <div style={{ marginBottom:40 }}>
           <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"#FF5A1F", marginBottom:8 }}>
@@ -839,16 +819,16 @@ export default function LeagueSetupPage() {
 
         {/* Step card */}
         <div style={{
-          background:"white", borderRadius:20, border:"1.5px solid #EDE5D8",
-          padding:"32px 32px 28px",
+          background:"var(--c-bg-elevated)", borderRadius:20, border:"1.5px solid var(--c-border-strong)",
+          padding: isMobile ? "24px 20px 20px" : "32px 32px 28px",
           boxShadow:"0 4px 24px rgba(28,20,16,0.06)",
           marginBottom:20,
         }}>
           <div style={{ marginBottom:24 }}>
-            <h2 style={{ fontFamily:"'Playfair Display', serif", fontSize:24, fontWeight:900, color:"#1C1410", marginBottom:4 }}>
+            <h2 style={{ fontFamily:"'Playfair Display', serif", fontSize: isMobile ? 18 : 22, fontWeight:900, color:"var(--c-text)", marginBottom:4 }}>
               {STEPS[step-1].label}
             </h2>
-            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#A89880", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+            <p style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"var(--c-text-muted)", letterSpacing:"0.08em", textTransform:"uppercase" }}>
               {STEPS[step-1].desc}
             </p>
           </div>
@@ -869,16 +849,17 @@ export default function LeagueSetupPage() {
             disabled={step === 1}
             style={{
               padding:"13px 28px", borderRadius:10,
-              border:"1.5px solid #EDE5D8", background:"white",
+              border:"1.5px solid var(--c-border-strong)", background:"var(--c-bg-elevated)",
               fontFamily:"'DM Mono', monospace", fontSize:12,
               letterSpacing:"0.08em", textTransform:"uppercase",
-              color: step === 1 ? "#D0C4B4" : "#A89880",
+              color: step === 1 ? "var(--c-text-dim)" : "var(--c-text-muted)",
               cursor: step === 1 ? "default" : "pointer",
               transition:"all 0.15s",
+              minHeight: 44, minWidth: 44,
             }}
           >← Back</button>
 
-          <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"#C0B09A", letterSpacing:"0.06em" }}>
+          <div style={{ fontFamily:"'DM Mono', monospace", fontSize:10, color:"var(--c-text-dim)", letterSpacing:"0.06em" }}>
             {step} / {STEPS.length}
           </div>
 
@@ -887,13 +868,14 @@ export default function LeagueSetupPage() {
                 onClick={() => canAdvance() && setStep(s => s+1)}
                 style={{
                   padding:"13px 28px", borderRadius:10, border:"none",
-                  background: canAdvance() ? "linear-gradient(135deg,#FF5A1F,#E8400A)" : "#F0E8DC",
-                  color: canAdvance() ? "white" : "#C0B09A",
+                  background: canAdvance() ? "linear-gradient(135deg,#FF5A1F,#E8400A)" : "var(--c-skeleton)",
+                  color: canAdvance() ? "white" : "var(--c-text-dim)",
                   fontFamily:"'DM Mono', monospace", fontSize:12,
                   letterSpacing:"0.08em", textTransform:"uppercase",
                   cursor: canAdvance() ? "pointer" : "default",
                   boxShadow: canAdvance() ? "0 4px 14px rgba(255,90,31,0.3)" : "none",
                   transition:"all 0.2s",
+                  minHeight: 44, minWidth: 44,
                 }}
               >Continue →</button>
             : <>
@@ -916,6 +898,7 @@ export default function LeagueSetupPage() {
                     cursor: creating ? "not-allowed" : "pointer",
                     boxShadow: creating ? "none" : "0 4px 16px rgba(255,90,31,0.35)",
                     transition:"all 0.2s",
+                    minHeight: 44, minWidth: 44,
                   }}
                 >{creating ? "Creating…" : "◆ Launch League"}</button>
               </>

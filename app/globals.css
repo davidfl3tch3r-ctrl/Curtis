@@ -1,0 +1,254 @@
+/* ─── CURTIS GLOBAL STYLES ─────────────────────────────────────── */
+
+/* ── CSS Custom Properties ─────────────────────────────────────── */
+:root {
+  /* Light mode (default) */
+  --c-bg:            #FAF7F2;
+  --c-bg-elevated:   #FFFFFF;
+  --c-text:          #1C1410;
+  --c-text-muted:    #7A6650;
+  --c-text-dim:      #A89880;
+  --c-border:        rgba(0, 0, 0, 0.10);
+  --c-border-strong: #EDE5D8;
+  --c-card:          rgba(0, 0, 0, 0.03);
+  --c-card-border:   rgba(0, 0, 0, 0.08);
+  --c-input:         rgba(0, 0, 0, 0.04);
+  --c-input-border:  rgba(0, 0, 0, 0.13);
+  --c-row:           rgba(0, 0, 0, 0.025);
+  --c-row-active:    rgba(0, 0, 0, 0.045);
+  --c-skeleton:      #F0E8DC;
+  --c-accent:        #FF5A1F;
+  --c-accent-dim:    rgba(255, 90, 31, 0.12);
+  --c-success:       #16A34A;
+}
+
+html.dark {
+  --c-bg:            #1C1410;
+  --c-bg-elevated:   #241A14;
+  --c-text:          #F5F0E8;
+  --c-text-muted:    #8B7355;
+  --c-text-dim:      #4A3E34;
+  --c-border:        rgba(255, 255, 255, 0.08);
+  --c-border-strong: rgba(255, 255, 255, 0.10);
+  --c-card:          rgba(255, 255, 255, 0.04);
+  --c-card-border:   rgba(255, 255, 255, 0.08);
+  --c-input:         rgba(255, 255, 255, 0.05);
+  --c-input-border:  rgba(255, 255, 255, 0.10);
+  --c-row:           rgba(255, 255, 255, 0.03);
+  --c-row-active:    rgba(255, 255, 255, 0.05);
+  --c-skeleton:      rgba(255, 255, 255, 0.06);
+  --c-accent:        #FF5A1F;
+  --c-accent-dim:    rgba(255, 90, 31, 0.15);
+  --c-success:       #22C55E;
+}
+
+/* ── Base Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--c-border-strong); border-radius: 2px; }
+html.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+
+/* ── Shared Nav Classes (used across pages) ─────────────────────── */
+.nav-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  padding: 6px 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  text-decoration: none;
+  display: inline-block;
+}
+.nav-link:hover  { color: var(--c-accent); }
+.nav-link.active { color: var(--c-accent); border-bottom-color: var(--c-accent); }
+
+/* ── Shared Button Classes ──────────────────────────────────────── */
+.new-btn {
+  background: linear-gradient(135deg, #FF5A1F, #E8400A);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(255, 90, 31, 0.3);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.new-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(255,90,31,0.4); }
+
+/* ── Shared Card / Tab Classes (home page) ──────────────────────── */
+.league-card {
+  border-radius: 14px;
+  border: 1.5px solid var(--c-border-strong);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  background: var(--c-bg-elevated);
+}
+.league-card:hover  { border-color: var(--c-accent); box-shadow: 0 4px 20px rgba(255,90,31,0.10); transform: translateY(-1px); }
+.league-card.active { border-color: var(--c-accent); box-shadow: 0 4px 24px rgba(255,90,31,0.15); }
+
+.tab-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  background: transparent;
+  color: var(--c-text-dim);
+}
+.tab-btn:hover  { color: var(--c-text); background: var(--c-row-active); }
+.tab-btn.active { background: var(--c-accent); color: white; }
+
+.stat-box {
+  background: var(--c-bg-elevated);
+  border-radius: 14px;
+  border: 1.5px solid var(--c-border-strong);
+  padding: 20px 22px;
+  flex: 1;
+}
+
+/* ── Responsive Utilities ───────────────────────────────────────── */
+
+/* Show/hide by breakpoint */
+.mobile-only   { display: none !important; }
+.desktop-only  { display: flex !important; }
+
+/* Nav hamburger — visible only on mobile */
+.nav-hamburger       { display: none !important; }
+/* Desktop nav links — hidden on mobile */
+.nav-links-desktop   { display: flex !important; }
+
+/* Horizontal scroll wrapper for tables */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Subtle scrollbar hint on mobile */
+  scrollbar-width: thin;
+}
+
+/* Bottom mobile tab bar */
+.mobile-tab-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--c-bg-elevated);
+  border-top: 1px solid var(--c-border-strong);
+  z-index: 90;
+}
+
+/* Stat boxes — flex row on desktop, grid on mobile */
+.stat-boxes-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* Generic 2-col responsive grid */
+.grid-sidebar {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+/* Touch target minimum */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  /* Show/hide */
+  .mobile-only         { display: flex !important; }
+  .desktop-only        { display: none !important; }
+
+  /* Nav */
+  .nav-hamburger       { display: flex !important; }
+  .nav-links-desktop   { display: none !important; }
+
+  /* Bottom tab bar */
+  .mobile-tab-bar { display: flex; }
+
+  /* Home page sidebar grid → stack */
+  .grid-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stat boxes → 2-col mini grid */
+  .stat-boxes-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* .stat-box from shared classes — ensure equal height */
+  .stat-box {
+    padding: 14px 16px;
+  }
+
+  /* League cards full width */
+  .league-card {
+    padding: 14px 16px;
+  }
+
+  /* Shared buttons: ensure tap target */
+  .new-btn {
+    min-height: 44px;
+    padding: 10px 18px;
+  }
+
+  .tab-btn {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 390px) {
+  .stat-boxes-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

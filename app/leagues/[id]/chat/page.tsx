@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 type Message = {
   id: string;
@@ -27,6 +29,7 @@ function formatTime(iso: string) {
 export default function LeagueChatPage() {
   const params = useParams();
   const leagueId = params.id as string;
+  const isMobile = useIsMobile();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -39,10 +42,11 @@ export default function LeagueChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const navLinks = [
-    { label: "Leagues",  href: "/" },
+    { label: "Home",     href: "/" },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Table",    href: `/leagues/${leagueId}/table` },
+    { label: "Stats",    href: `/leagues/${leagueId}/table` },
     { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
     { label: "Trades",   href: `/leagues/${leagueId}/trades` },
     { label: "Chat",     href: `/leagues/${leagueId}/chat` },
@@ -139,11 +143,9 @@ export default function LeagueChatPage() {
   }
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#FAF7F2", color: "#1C1410" }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #A89880; text-decoration: none; transition: color 0.15s; }
-        .nav-link:hover, .nav-link.active { color: #FF5A1F; }
         .msg-bubble {
           max-width: 68%;
           padding: 12px 18px;
@@ -159,27 +161,27 @@ export default function LeagueChatPage() {
           border-bottom-right-radius: 5px;
         }
         .msg-theirs {
-          background: white;
-          color: #1C1410;
-          border: 1.5px solid #EDE5D8;
+          background: var(--c-card);
+          color: var(--c-text);
+          border: 1.5px solid var(--c-card-border);
           border-bottom-left-radius: 5px;
         }
         .chat-input {
           flex: 1;
           padding: 14px 18px;
-          border: 2px solid #EDE5D8;
+          border: 2px solid var(--c-input-border);
           border-radius: 14px;
           font-family: 'DM Sans', sans-serif;
           font-size: 16px;
           resize: none;
           outline: none;
-          background: white;
+          background: var(--c-input);
           transition: border-color 0.15s;
-          color: #1C1410;
+          color: var(--c-text);
           line-height: 1.5;
         }
         .chat-input:focus { border-color: #FF5A1F; }
-        .chat-input::placeholder { color: #C4B8AA; }
+        .chat-input::placeholder { color: var(--c-text-dim); }
         .send-btn {
           height: 52px;
           padding: 0 28px;
@@ -202,7 +204,7 @@ export default function LeagueChatPage() {
           font-family: 'DM Mono', monospace;
           font-size: 11px;
           letter-spacing: 0.05em;
-          color: #A89880;
+          color: var(--c-text-muted);
           margin-bottom: 4px;
           font-weight: 600;
         }
@@ -210,34 +212,25 @@ export default function LeagueChatPage() {
         .msg-time {
           font-family: 'DM Mono', monospace;
           font-size: 10px;
-          color: #C4B8AA;
+          color: var(--c-text-dim);
           margin-top: 4px;
           letter-spacing: 0.03em;
         }
       `}</style>
 
-      {/* Nav */}
-      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 20px", height: 56, display: "flex", alignItems: "center", gap: 20, background: "white", flexShrink: 0 }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F", flexShrink: 0 }}>CURTIS</span>
-        {navLinks.map((l) => (
-          <Link key={l.href} href={l.href} className={`nav-link${l.label === "Chat" ? " active" : ""}`}>{l.label}</Link>
-        ))}
-        <span style={{ marginLeft: "auto", fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "#1C1410", flexShrink: 0 }}>
-          {leagueName} · League Chat
-        </span>
-      </nav>
+      <NavBar links={navLinks} activeLabel="Chat" right={<ThemeToggle size="sm" />} />
 
       {/* Messages — flex:1, spacer at top pushes messages to bottom */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "24px 32px", display: "flex", flexDirection: "column" }}>
 
         {/* Top spacer — forces messages to bottom when list is short */}
         <div style={{ flex: 1 }} />
 
         {loading && (
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#A89880", alignSelf: "center", marginBottom: 24 }}>Loading…</p>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--c-text-muted)", alignSelf: "center", marginBottom: 24 }}>Loading…</p>
         )}
         {!loading && messages.length === 0 && (
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#A89880", alignSelf: "center", marginBottom: 24 }}>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--c-text-muted)", alignSelf: "center", marginBottom: 24 }}>
             No messages yet — say something!
           </p>
         )}
@@ -276,9 +269,9 @@ export default function LeagueChatPage() {
 
       {/* Input bar — fixed at bottom */}
       <div style={{
-        padding: "16px 32px 24px",
-        borderTop: "1.5px solid #EDE5D8",
-        background: "white",
+        padding: isMobile ? "12px 16px 16px" : "16px 32px 24px",
+        borderTop: "1.5px solid var(--c-border)",
+        background: "var(--c-bg-elevated)",
         display: "flex",
         gap: 12,
         alignItems: "flex-end",

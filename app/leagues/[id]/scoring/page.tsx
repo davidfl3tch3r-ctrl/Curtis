@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 const SCORING_CATEGORIES = [
   { label: "Goal", group: "Attacking" },
@@ -66,18 +69,25 @@ const GROUP_META: Record<string, { color: string; bg: string; icon: string }> = 
   Discipline: { color: "#991B1B", bg: "#FEF2F2", icon: "▲" },
 };
 
-const NAV_LINKS: { label: string; href: string }[] = [
-  { label: "Leagues", href: "/" },
-  { label: "Draft", href: "/leagues/1/draft" },
-  { label: "Scoring", href: "/leagues/1/scoring" },
-  { label: "Live", href: "/leagues/1/live" },
-  { label: "Stats", href: "/leagues/1/table" },
-];
-
 export default function ScoringMatrixPage() {
+  const params = useParams();
+  const leagueId = params.id as string;
+  const isMobile = useIsMobile();
   const [scores, setScores] = useState<ScoreValues>(DEFAULT_VALUES);
   const [activeGroup, setActiveGroup] = useState("Attacking");
   const [saved, setSaved] = useState(false);
+
+  const navLinks = [
+    { label: "Home",     href: "/" },
+    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
+    { label: "Live",     href: `/leagues/${leagueId}/live` },
+    { label: "Stats",    href: `/leagues/${leagueId}/table` },
+    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
+    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
+    { label: "Messages", href: `/leagues/${leagueId}/messages` },
+  ];
 
   const updateScore = (label: string, pos: string, val: string) => {
     setScores(s => ({ ...s, [label]: { ...s[label], [pos]: val } }));
@@ -96,23 +106,24 @@ export default function ScoringMatrixPage() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#FAF7F2",
+      background: "var(--c-bg)",
       fontFamily: "Georgia, serif",
-      color: "#1C1410",
+      color: "var(--c-text)",
+      overflowX: "hidden",
     }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         .score-input {
           width: 60px;
-          background: #FFFFFF;
-          border: 1.5px solid #E8E0D5;
+          background: var(--c-input);
+          border: 1.5px solid var(--c-input-border);
           border-radius: 8px;
           padding: 9px 4px;
           text-align: center;
           font-family: 'DM Mono', monospace;
           font-size: 13px;
-          color: #1C1410;
+          color: var(--c-text);
           outline: none;
           transition: all 0.18s;
         }
@@ -123,23 +134,7 @@ export default function ScoringMatrixPage() {
         }
         .score-input.neg { color: #B91C1C; background: #FFF5F5; }
         .score-input.pos { color: #166534; }
-        .score-input.zero { color: #AAA; }
-
-        .nav-link {
-          font-family: 'DM Mono', monospace;
-          font-size: 11px;
-          letter-spacing: 0.09em;
-          text-transform: uppercase;
-          color: #A89880;
-          cursor: pointer;
-          padding: 6px 0;
-          border-bottom: 2px solid transparent;
-          transition: all 0.15s;
-          text-decoration: none;
-          display: inline-block;
-        }
-        .nav-link:hover { color: #FF5A1F; }
-        .nav-link.active { color: #FF5A1F; border-bottom-color: #FF5A1F; }
+        .score-input.zero { color: var(--c-text-muted); }
 
         .group-tab {
           display: flex;
@@ -155,9 +150,9 @@ export default function ScoringMatrixPage() {
           border: 1.5px solid transparent;
           transition: all 0.18s;
           background: transparent;
-          color: #A89880;
+          color: var(--c-text-muted);
         }
-        .group-tab:hover { background: #F0E8DC; color: #1C1410; }
+        .group-tab:hover { background: var(--c-skeleton); color: var(--c-text); }
         .group-tab.active {
           border-color: transparent;
           color: white;
@@ -182,14 +177,14 @@ export default function ScoringMatrixPage() {
 
         .reset-btn {
           background: transparent;
-          border: 1.5px solid #E8E0D5;
+          border: 1.5px solid var(--c-border-strong);
           border-radius: 10px;
           padding: 13px 22px;
           font-family: 'DM Mono', monospace;
           font-size: 12px;
           letter-spacing: 0.07em;
           text-transform: uppercase;
-          color: #A89880;
+          color: var(--c-text-muted);
           cursor: pointer;
           transition: all 0.18s;
         }
@@ -212,70 +207,12 @@ export default function ScoringMatrixPage() {
         .row-wrap:hover { background: rgba(255,90,31,0.03); border-radius: 8px; }
 
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #E8D5C0; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--c-border-strong); border-radius: 2px; }
       `}</style>
 
-      {/* NAV */}
-      <nav style={{
-        height: 58,
-        background: "#FAF7F2",
-        borderBottom: "1px solid #EDE5D8",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 44px",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-      }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <div style={{
-            width: 34, height: 34,
-            background: "linear-gradient(135deg, #FF5A1F 0%, #E8400A 100%)",
-            borderRadius: 9,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 3px 10px rgba(255,90,31,0.35)",
-          }}>
-            <span style={{ color: "white", fontSize: 16 }}>◆</span>
-          </div>
-          <div>
-            <div style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 20,
-              fontWeight: 900,
-              letterSpacing: "-0.02em",
-              lineHeight: 1,
-              color: "#1C1410",
-            }}>CURTIS</div>
-            <div style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 8,
-              letterSpacing: "0.14em",
-              color: "#FF5A1F",
-              textTransform: "uppercase",
-            }}>Draft Football</div>
-          </div>
-        </div>
+      <NavBar links={navLinks} activeLabel="Scoring" right={<ThemeToggle size="sm" />} />
 
-        <div style={{ display: "flex", gap: 32 }}>
-          {NAV_LINKS.map(item => (
-            <Link key={item.label} href={item.href} className={`nav-link${item.label === "Scoring" ? " active" : ""}`}>{item.label}</Link>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "linear-gradient(135deg, #FF5A1F, #E8400A)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 12, color: "white", fontWeight: 500,
-          }}>JD</div>
-        </div>
-      </nav>
-
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "48px 40px" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "20px 16px" : "48px 40px" }}>
 
         {/* Page header */}
         <div style={{ marginBottom: 36, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -293,16 +230,16 @@ export default function ScoringMatrixPage() {
                 fontSize: 10,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "#A89880",
+                color: "var(--c-text-muted)",
               }}>Scoring Matrix</span>
             </div>
             <h1 style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: 38,
+              fontSize: isMobile ? 26 : 38,
               fontWeight: 900,
               letterSpacing: "-0.02em",
               lineHeight: 1.05,
-              color: "#1C1410",
+              color: "var(--c-text)",
             }}>
               Scoring<br />
               <span style={{ color: "#FF5A1F", fontStyle: "italic" }}>Matrix</span>
@@ -358,21 +295,21 @@ export default function ScoringMatrixPage() {
         </div>
 
         {/* Main card */}
-        <div style={{
-          background: "#FFFFFF",
+        <div className="table-scroll" style={{
+          background: "var(--c-bg-elevated)",
           borderRadius: 20,
-          border: "1px solid #EDE5D8",
+          border: "1px solid var(--c-border-strong)",
           overflow: "hidden",
           boxShadow: "0 4px 24px rgba(28,20,16,0.06)",
         }}>
           {/* Group tabs */}
           <div style={{
             padding: "20px 32px",
-            borderBottom: "1px solid #EDE5D8",
+            borderBottom: "1px solid var(--c-border-strong)",
             display: "flex",
             gap: 6,
             flexWrap: "wrap",
-            background: "#FDFAF7",
+            background: "var(--c-bg)",
           }}>
             {GROUPS.map(g => {
               const m = GROUP_META[g];
@@ -404,14 +341,14 @@ export default function ScoringMatrixPage() {
             gridTemplateColumns: "1fr 68px 68px 68px 68px",
             gap: 10,
             padding: "14px 32px 10px",
-            borderBottom: "1px solid #F5EFE8",
+            borderBottom: "1px solid var(--c-border-strong)",
           }}>
             <div style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 10,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#C0B09A",
+              color: "var(--c-text-dim)",
             }}>Stat</div>
             {POSITIONS.map(p => (
               <div key={p} style={{
@@ -419,7 +356,7 @@ export default function ScoringMatrixPage() {
                 fontSize: 10,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
-                color: "#C0B09A",
+                color: "var(--c-text-dim)",
                 textAlign: "center",
               }}>{p}</div>
             ))}
@@ -436,13 +373,13 @@ export default function ScoringMatrixPage() {
                   gap: 10,
                   padding: "9px 8px",
                   alignItems: "center",
-                  borderBottom: idx < filteredCategories.length - 1 ? "1px solid #F8F3EE" : "none",
+                  borderBottom: idx < filteredCategories.length - 1 ? "1px solid var(--c-border)" : "none",
                   transition: "background 0.15s",
                 }}>
                   <span style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 13,
-                    color: "#3D2E22",
+                    color: "var(--c-text)",
                     fontWeight: 400,
                   }}>{cat.label}</span>
                   {POSITIONS.map(pos => {
@@ -466,16 +403,16 @@ export default function ScoringMatrixPage() {
           {/* Footer */}
           <div style={{
             padding: "20px 32px",
-            borderTop: "1px solid #EDE5D8",
+            borderTop: "1px solid var(--c-border-strong)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "#FDFAF7",
+            background: "var(--c-bg)",
           }}>
             <div style={{
               fontFamily: "'DM Mono', monospace",
               fontSize: 10,
-              color: "#C0B09A",
+              color: "var(--c-text-dim)",
               letterSpacing: "0.06em",
             }}>
               <span style={{ color: meta.color, marginRight: 4 }}>{meta.icon}</span>
@@ -513,7 +450,7 @@ export default function ScoringMatrixPage() {
           <span style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: 10,
-            color: "#D0C4B4",
+            color: "var(--c-text-dim)",
             letterSpacing: "0.1em",
           }}>CURTIS · Draft Football · 2025/26</span>
         </div>

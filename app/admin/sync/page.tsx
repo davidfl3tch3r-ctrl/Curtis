@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type SyncResult = { synced?: number; ok?: boolean; round?: number; fixtures?: number; scored?: number; statsProcessed?: number; teamsUpdated?: number; error?: string };
 
 function StatPill({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "#1C1410" }}>{value}</div>
-      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89880", marginTop: 2 }}>{label}</div>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "var(--c-text)" }}>{value}</div>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-muted)", marginTop: 2 }}>{label}</div>
     </div>
   );
 }
@@ -64,34 +65,35 @@ export default function AdminSyncPage() {
   }
 
   const card: React.CSSProperties = {
-    background: "#FFFFFF", borderRadius: 16, padding: "28px 32px",
-    border: "1.5px solid #E8E0D8", marginBottom: 20,
+    background: "var(--c-card)", borderRadius: 16, padding: "28px 32px",
+    border: "1.5px solid var(--c-card-border)", marginBottom: 20,
   };
   const label: React.CSSProperties = {
     fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em",
-    textTransform: "uppercase", color: "#9C8A7A", marginBottom: 8, display: "block",
+    textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 8, display: "block",
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F2", padding: "40px 24px" }}>
+    <div style={{ minHeight: "100vh", background: "var(--c-bg)", padding: "40px 24px" }}>
+      <div style={{ position: "fixed", top: 16, right: 16 }}><ThemeToggle /></div>
       <div style={{ width: "100%", maxWidth: 520, margin: "0 auto" }}>
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 900, letterSpacing: "0.08em", color: "#1C1410" }}>CURTIS</div>
-          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9C8A7A", marginTop: 6 }}>Admin · Data Sync</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 900, letterSpacing: "0.08em", color: "var(--c-text)" }}>CURTIS</div>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginTop: 6 }}>Admin · Data Sync</div>
         </div>
 
         {/* ── Player Sync ── */}
         <div style={card}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "#1C1410", margin: "0 0 4px 0" }}>Player Roster</h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#9C8A7A", margin: "0 0 20px 0", lineHeight: 1.5 }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: "0 0 4px 0" }}>Player Roster</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", margin: "0 0 20px 0", lineHeight: 1.5 }}>
             Pull all PL squad players from API-Football. Uses ~25 API calls.
           </p>
 
-          <div style={{ background: "#FAF7F2", borderRadius: 10, padding: "12px 18px", border: "1px solid #EDE5D8", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "var(--c-bg)", borderRadius: 10, padding: "12px 18px", border: "1px solid var(--c-border)", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={label as React.CSSProperties}>Players in DB</span>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 900, color: "#1C1410" }}>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 900, color: "var(--c-text)" }}>
               {playerCount === null ? "—" : playerCount.toLocaleString()}
             </span>
           </div>
@@ -109,8 +111,8 @@ export default function AdminSyncPage() {
 
         {/* ── Score Sync ── */}
         <div style={card}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "#1C1410", margin: "0 0 4px 0" }}>Gameweek Scores</h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#9C8A7A", margin: "0 0 20px 0", lineHeight: 1.5 }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: "0 0 4px 0" }}>Gameweek Scores</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", margin: "0 0 20px 0", lineHeight: 1.5 }}>
             Fetch fixture results + player stats, calculate fantasy points, update all team scores. Leave round blank to use current round.
           </p>
 
@@ -121,9 +123,9 @@ export default function AdminSyncPage() {
               value={round}
               onChange={e => setRound(e.target.value)}
               placeholder="e.g. 32 — leave blank for current"
-              style={{ width: "100%", padding: "10px 12px", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#1C1410", background: "#FAF7F2", border: "1.5px solid #E8E0D8", borderRadius: 8, outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "10px 12px", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--c-text)", background: "var(--c-input)", border: "1.5px solid var(--c-input-border)", borderRadius: 8, outline: "none", boxSizing: "border-box" }}
               onFocus={e => (e.target.style.borderColor = "#FF5A1F")}
-              onBlur={e => (e.target.style.borderColor = "#E8E0D8")}
+              onBlur={e => (e.target.style.borderColor = "var(--c-input-border)")}
             />
           </div>
 
@@ -147,7 +149,7 @@ export default function AdminSyncPage() {
             {syncingScores ? "Syncing scores… this may take a minute" : "Sync Scores from API-Football"}
           </button>
 
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#B8A898", letterSpacing: "0.05em", textAlign: "center", marginTop: 14, marginBottom: 0 }}>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", letterSpacing: "0.05em", textAlign: "center", marginTop: 14, marginBottom: 0 }}>
             Season 2025 · League ID 39 · Free tier: 100 req/day
           </p>
         </div>

@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NavBar } from "@/components/NavBar";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 type Player = { id: string; name: string; club: string; position: string };
 type SquadPlayer = { player_id: string; player: Player };
@@ -33,6 +36,7 @@ const STATUS_COLOR: Record<string, string> = {
 export default function TradesPage() {
   const params = useParams();
   const leagueId = params.id as string;
+  const isMobile = useIsMobile();
 
   const [tab, setTab] = useState<"propose" | "incoming" | "outgoing">("incoming");
   const [loading, setLoading] = useState(true);
@@ -203,8 +207,9 @@ export default function TradesPage() {
   const navLinks = [
     { label: "Home",     href: "/" },
     { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Table",    href: `/leagues/${leagueId}/table` },
+    { label: "Stats",    href: `/leagues/${leagueId}/table` },
     { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
     { label: "Trades",   href: `/leagues/${leagueId}/trades` },
     { label: "Chat",     href: `/leagues/${leagueId}/chat` },
@@ -212,51 +217,43 @@ export default function TradesPage() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F2", color: "#1C1410" }}>
+    <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .nav-link { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: #A89880; text-decoration: none; transition: color 0.15s; }
-        .nav-link:hover, .nav-link.active { color: #FF5A1F; }
-        .tab-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; background: transparent; color: #A89880; }
+        .tab-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--c-text-muted); }
         .tab-btn.active { background: #FF5A1F; color: white; }
-        .trade-card { background: white; border-radius: 12px; border: 1.5px solid #EDE5D8; padding: 18px 20px; }
-        .player-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: #F7F3EE; border-radius: 6px; font-size: 12px; margin: 3px; cursor: pointer; border: 1.5px solid #EDE5D8; transition: all 0.15s; user-select: none; }
-        .player-chip.selected { border-color: #FF5A1F; background: #FFF5F0; }
+        .trade-card { background: var(--c-bg-elevated); border-radius: 12px; border: 1.5px solid var(--c-border-strong); padding: 18px 20px; }
+        .player-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--c-card); border-radius: 6px; font-size: 12px; margin: 3px; cursor: pointer; border: 1.5px solid var(--c-card-border); transition: all 0.15s; user-select: none; }
+        .player-chip.selected { border-color: #FF5A1F; background: var(--c-accent-dim); }
         .player-chip:hover { border-color: #FF5A1F; }
         .pos-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .action-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.07em; padding: 7px 16px; border-radius: 8px; border: 1.5px solid; cursor: pointer; transition: all 0.15s; }
-        .accept-btn { border-color: #10B981; color: #10B981; background: white; }
+        .action-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.07em; padding: 7px 16px; border-radius: 8px; border: 1.5px solid; cursor: pointer; transition: all 0.15s; min-height: 44px; }
+        .accept-btn { border-color: #10B981; color: #10B981; background: var(--c-bg-elevated); }
         .accept-btn:hover { background: #10B981; color: white; }
-        .reject-btn { border-color: #EF4444; color: #EF4444; background: white; }
+        .reject-btn { border-color: #EF4444; color: #EF4444; background: var(--c-bg-elevated); }
         .reject-btn:hover { background: #EF4444; color: white; }
-        .counter-btn { border-color: #8B5CF6; color: #8B5CF6; background: white; }
+        .counter-btn { border-color: #8B5CF6; color: #8B5CF6; background: var(--c-bg-elevated); }
         .counter-btn:hover { background: #8B5CF6; color: white; }
-        .primary-btn { padding: 11px 24px; border-radius: 10px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; }
+        .primary-btn { padding: 11px 24px; border-radius: 10px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; min-height: 44px; }
         .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #A89880; margin-bottom: 8px; }
+        .section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-text-muted); margin-bottom: 8px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; overflow-y: auto; }
-        .modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 640px; }
-        .input { width: 100%; padding: 10px 14px; border: 1.5px solid #EDE5D8; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; }
+        .modal { background: var(--c-bg-elevated); border-radius: 16px; padding: 28px; width: 100%; max-width: 640px; }
+        .input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--c-input-border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; background: var(--c-input); color: var(--c-text); }
         .input:focus { border-color: #FF5A1F; }
-        select.input { background: white; cursor: pointer; }
+        select.input { background: var(--c-input); cursor: pointer; }
       `}</style>
 
-      {/* Nav */}
-      <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 24px", height: 56, display: "flex", alignItems: "center", gap: 28, background: "white" }}>
-        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F" }}>CURTIS</span>
-        {navLinks.map((l) => (
-          <Link key={l.href} href={l.href} className={`nav-link${l.href.includes("trades") ? " active" : ""}`}>{l.label}</Link>
-        ))}
-      </nav>
+      <NavBar links={navLinks} activeLabel="Trades" right={<ThemeToggle size="sm" />} />
 
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "20px 16px" : "32px 24px" }}>
         <div style={{ marginBottom: 24 }}>
-          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.09em", textTransform: "uppercase", color: "#A89880", marginBottom: 4 }}>{leagueName}</p>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900 }}>Trade Centre</h1>
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--c-text-muted)", marginBottom: 4 }}>{leagueName}</p>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 22 : 28, fontWeight: 900 }}>Trade Centre</h1>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, background: "#F0EAE0", borderRadius: 10, padding: 4, marginBottom: 24, width: "fit-content" }}>
+        <div style={{ display: "flex", gap: 4, background: "var(--c-row)", borderRadius: 10, padding: 4, marginBottom: 24, width: "fit-content", flexWrap: "wrap" }}>
           {(["incoming", "outgoing", "propose"] as const).map((t) => (
             <button key={t} className={`tab-btn${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
               {t === "incoming" ? `Incoming${incoming.filter(x => x.status === "pending").length ? ` (${incoming.filter(x => x.status === "pending").length})` : ""}` : t === "outgoing" ? "Outgoing" : "Propose Trade"}
@@ -265,7 +262,7 @@ export default function TradesPage() {
         </div>
 
         {loading ? (
-          <div style={{ color: "#A89880", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>Loading…</div>
+          <div style={{ color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace", fontSize: 13 }}>Loading…</div>
         ) : tab === "propose" ? (
           /* ── PROPOSE TAB ── */
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -283,17 +280,17 @@ export default function TradesPage() {
 
             {targetTeamId && (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
                   <div>
                     <p className="section-label">Your Players — Offering</p>
-                    <div style={{ background: "#F7F3EE", borderRadius: 10, padding: 12, minHeight: 80 }}>
+                    <div style={{ background: "var(--c-card)", borderRadius: 10, padding: 12, minHeight: 80 }}>
                       {mySquad.map((sp) => (
                         <span
                           key={sp.player_id}
                           className={`player-chip${giving.includes(sp.player_id) ? " selected" : ""}`}
                           onClick={() => toggleSelect(giving, setGiving, sp.player_id)}
                         >
-                          <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "#A89880" }} />
+                          <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "var(--c-text-muted)" }} />
                           {sp.player?.name}
                         </span>
                       ))}
@@ -301,14 +298,14 @@ export default function TradesPage() {
                   </div>
                   <div>
                     <p className="section-label">Their Players — Requesting</p>
-                    <div style={{ background: "#F7F3EE", borderRadius: 10, padding: 12, minHeight: 80 }}>
+                    <div style={{ background: "var(--c-card)", borderRadius: 10, padding: 12, minHeight: 80 }}>
                       {targetSquad.map((sp) => (
                         <span
                           key={sp.player_id}
                           className={`player-chip${wanting.includes(sp.player_id) ? " selected" : ""}`}
                           onClick={() => toggleSelect(wanting, setWanting, sp.player_id)}
                         >
-                          <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "#A89880" }} />
+                          <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "var(--c-text-muted)" }} />
                           {sp.player?.name}
                         </span>
                       ))}
@@ -317,7 +314,7 @@ export default function TradesPage() {
                 </div>
 
                 {(giving.length > 0 || wanting.length > 0) && (
-                  <div style={{ background: "#F7F3EE", borderRadius: 10, padding: 14, fontSize: 13, color: "#6B5E52" }}>
+                  <div style={{ background: "var(--c-card)", borderRadius: 10, padding: 14, fontSize: 13, color: "var(--c-text-muted)" }}>
                     You give: <strong>{giving.length ? mySquad.filter(s => giving.includes(s.player_id)).map(s => s.player?.name).join(", ") : "nothing"}</strong>
                     {" · "}
                     You get: <strong>{wanting.length ? targetSquad.filter(s => wanting.includes(s.player_id)).map(s => s.player?.name).join(", ") : "nothing"}</strong>
@@ -348,7 +345,7 @@ export default function TradesPage() {
           /* ── INCOMING / OUTGOING TABS ── */
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {(tab === "incoming" ? incoming : outgoing).length === 0 && (
-              <p style={{ color: "#A89880", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
+              <p style={{ color: "var(--c-text-muted)", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
                 {tab === "incoming" ? "No incoming trade offers." : "No outgoing trade offers."}
               </p>
             )}
@@ -364,7 +361,7 @@ export default function TradesPage() {
                       <p style={{ fontWeight: 600, fontSize: 14 }}>
                         {isIncoming ? trade.proposing_team?.name : trade.receiving_team?.name}
                       </p>
-                      <p style={{ fontSize: 12, color: "#A89880", fontFamily: "'DM Mono', monospace" }}>
+                      <p style={{ fontSize: 12, color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace" }}>
                         {new Date(trade.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       </p>
                     </div>
@@ -378,25 +375,25 @@ export default function TradesPage() {
                       <p className="section-label">You receive</p>
                       {giving.length ? giving.map((item) => (
                         <span key={item.player_id} className="player-chip" style={{ cursor: "default" }}>
-                          <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "#A89880" }} />
+                          <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "var(--c-text-muted)" }} />
                           {item.player?.name}
                         </span>
-                      )) : <span style={{ fontSize: 12, color: "#A89880" }}>Nothing</span>}
+                      )) : <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>Nothing</span>}
                     </div>
-                    <span style={{ color: "#A89880", fontSize: 18 }}>⇄</span>
+                    <span style={{ color: "var(--c-text-muted)", fontSize: 18 }}>⇄</span>
                     <div>
                       <p className="section-label">You give</p>
                       {receiving.length ? receiving.map((item) => (
                         <span key={item.player_id} className="player-chip" style={{ cursor: "default" }}>
-                          <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "#A89880" }} />
+                          <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "var(--c-text-muted)" }} />
                           {item.player?.name}
                         </span>
-                      )) : <span style={{ fontSize: 12, color: "#A89880" }}>Nothing</span>}
+                      )) : <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>Nothing</span>}
                     </div>
                   </div>
 
                   {trade.message && (
-                    <p style={{ fontSize: 13, color: "#6B5E52", fontStyle: "italic", marginBottom: 12 }}>"{trade.message}"</p>
+                    <p style={{ fontSize: 13, color: "var(--c-text-muted)", fontStyle: "italic", marginBottom: 12 }}>"{trade.message}"</p>
                   )}
 
                   {trade.status === "pending" && isIncoming && (
@@ -424,17 +421,17 @@ export default function TradesPage() {
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setCounterTrade(null); }}>
           <div className="modal">
             <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Counter Offer</h2>
-            <p style={{ color: "#6B5E52", fontSize: 13, marginBottom: 20 }}>
+            <p style={{ color: "var(--c-text-muted)", fontSize: 13, marginBottom: 20 }}>
               vs {counterTrade.proposing_team?.name}
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 16 }}>
               <div>
                 <p className="section-label">Your Players — Offering</p>
-                <div style={{ background: "#F7F3EE", borderRadius: 10, padding: 10, minHeight: 60 }}>
+                <div style={{ background: "var(--c-card)", borderRadius: 10, padding: 10, minHeight: 60 }}>
                   {mySquad.map((sp) => (
                     <span key={sp.player_id} className={`player-chip${counterGiving.includes(sp.player_id) ? " selected" : ""}`} onClick={() => toggleSelect(counterGiving, setCounterGiving, sp.player_id)}>
-                      <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "#A89880" }} />
+                      <span className="pos-dot" style={{ background: POS_COLOR[sp.player?.position] ?? "var(--c-text-muted)" }} />
                       {sp.player?.name}
                     </span>
                   ))}
@@ -442,15 +439,15 @@ export default function TradesPage() {
               </div>
               <div>
                 <p className="section-label">Their Players — Requesting</p>
-                <div style={{ background: "#F7F3EE", borderRadius: 10, padding: 10, minHeight: 60 }}>
+                <div style={{ background: "var(--c-card)", borderRadius: 10, padding: 10, minHeight: 60 }}>
                   {/* Load the proposing team's squad for counter selection */}
                   {counterTrade.items.filter(i => i.from_team_id === counterTrade.proposing_team_id).map((item) => (
                     <span key={item.player_id} className={`player-chip${counterWanting.includes(item.player_id) ? " selected" : ""}`} onClick={() => toggleSelect(counterWanting, setCounterWanting, item.player_id)}>
-                      <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "#A89880" }} />
+                      <span className="pos-dot" style={{ background: POS_COLOR[item.player?.position] ?? "var(--c-text-muted)" }} />
                       {item.player?.name}
                     </span>
                   ))}
-                  <p style={{ fontSize: 11, color: "#A89880", fontFamily: "'DM Mono', monospace" }}>Players from original offer shown · propose new via Propose tab</p>
+                  <p style={{ fontSize: 11, color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace" }}>Players from original offer shown · propose new via Propose tab</p>
                 </div>
               </div>
             </div>
@@ -463,7 +460,7 @@ export default function TradesPage() {
             {counterError && <p style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, fontFamily: "'DM Mono', monospace" }}>{counterError}</p>}
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setCounterTrade(null)} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1.5px solid #EDE5D8", background: "white", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em" }}>Cancel</button>
+              <button onClick={() => setCounterTrade(null)} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "1.5px solid var(--c-border-strong)", background: "var(--c-bg-elevated)", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em" }}>Cancel</button>
               <button onClick={submitCounter} disabled={counterLoading} className="primary-btn" style={{ flex: 2 }}>
                 {counterLoading ? "Sending…" : "Send Counter Offer"}
               </button>
