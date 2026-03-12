@@ -92,6 +92,7 @@ export default function LiveScoringPage() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [curtisMoment, setCurtisMoment] = useState<{ playerName: string; position: string; club: string; points: number } | null>(null);
 
   useEffect(() => {
     load();
@@ -171,6 +172,34 @@ export default function LiveScoringPage() {
         .order("kickoff");
 
       setFixtures(fixtureData ?? []);
+    }
+
+    // Curtis Moment: check if a DEF or GK is the top scorer in the league this GW
+    if (gw) {
+      const { data: leagueTeams } = await supabase
+        .from("teams")
+        .select("id")
+        .eq("league_id", leagueId);
+      const teamIds = (leagueTeams ?? []).map(t => t.id);
+      if (teamIds.length > 0) {
+        const { data: allSquadPlayers } = await supabase
+          .from("squad_players")
+          .select("player:players(name, position, club, gw_points)")
+          .in("team_id", teamIds)
+          .eq("is_starting", true);
+        if (allSquadPlayers && allSquadPlayers.length > 0) {
+          type SP = { player: { name: string; position: string; club: string; gw_points: number } };
+          const sorted = [...(allSquadPlayers as unknown as SP[])].sort(
+            (a, b) => (b.player?.gw_points ?? 0) - (a.player?.gw_points ?? 0)
+          );
+          const top = sorted[0]?.player;
+          if (top && (top.position === "DEF" || top.position === "GK") && (top.gw_points ?? 0) > 0) {
+            setCurtisMoment({ playerName: top.name, position: top.position, club: top.club, points: top.gw_points });
+          } else {
+            setCurtisMoment(null);
+          }
+        }
+      }
     }
 
     setLoading(false);
@@ -318,6 +347,39 @@ export default function LiveScoringPage() {
 
             {/* LEFT — Squad */}
             <div>
+              {/* Curtis Moment banner */}
+              {curtisMoment && (
+                <div style={{
+                  background: "linear-gradient(135deg, #1C1410 0%, #3D2E22 100%)",
+                  border: "1.5px solid rgba(255,90,31,0.4)",
+                  borderRadius: 14, padding: "16px 20px", marginBottom: 16,
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+                }}>
+                  <div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 6 }}>
+                      ⚡ Curtis Moment
+                    </div>
+                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: "white", lineHeight: 1.3 }}>
+                      {curtisMoment.playerName}{" "}
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>({curtisMoment.position})</span>{" "}
+                      <span style={{ color: "#FF5A1F" }}>is leading this gameweek!</span>
+                    </p>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 4, letterSpacing: "0.04em" }}>
+                      {curtisMoment.points.toFixed(1)} pts · {curtisMoment.club}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const url = window.location.href;
+                      navigator.clipboard.writeText(url).then(() => alert("Link copied!"));
+                    }}
+                    style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,90,31,0.4)", background: "rgba(255,90,31,0.12)", color: "#FF5A1F", fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                  >
+                    Share
+                  </button>
+                </div>
+              )}
+
               {/* Matchup banner */}
               {matchup ? (
                 <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, border: "1.5px solid var(--c-border)" }}>

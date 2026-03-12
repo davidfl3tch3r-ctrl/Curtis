@@ -1,9 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavBar } from "@/components/NavBar";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { createClient } from "@/lib/supabase";
+
+type Badge = { id: string; badge_key: string; badge_name: string; badge_emoji: string; earned_at: string };
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 
@@ -401,6 +404,22 @@ export default function SquadPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<SquadPlayer | null>(null);
   const [view, setView]       = useState<"squad" | "stats">("squad");
   const [posFilter, setPosFilter] = useState("ALL");
+  const [badges, setBadges] = useState<Badge[]>([]);
+
+  useEffect(() => {
+    async function loadBadges() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("manager_badges")
+        .select("id, badge_key, badge_name, badge_emoji, earned_at")
+        .eq("user_id", user.id)
+        .order("earned_at", { ascending: false });
+      if (data) setBadges(data);
+    }
+    loadBadges();
+  }, []);
 
   const navLinks = [
     { label: "Home",     href: "/" },
@@ -620,6 +639,47 @@ export default function SquadPage() {
                 <p style={{ fontFamily:"'Playfair Display', serif", fontSize:16, fontWeight:700, color:"#C2410C", marginBottom:4 }}>Davies C · 17 pts GW28</p>
                 <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, color:"#92400E", lineHeight:1.5 }}>74 interceptions this season. Your CB is outscoring half the league&apos;s attackers.</p>
               </div>
+
+              {/* Badge Cabinet */}
+              <div style={{ background:"var(--c-bg-elevated)", border:"1.5px solid var(--c-border-strong)", borderRadius:14, padding:"16px 18px" }}>
+                <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--c-text-dim)", marginBottom:12 }}>Badge Cabinet</p>
+                {badges.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"16px 0" }}>
+                    <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, color:"var(--c-text-muted)", marginBottom:6 }}>No badges yet.</p>
+                    <p style={{ fontFamily:"'DM Mono', monospace", fontSize:9, color:"var(--c-text-dim)", lineHeight:1.5 }}>Earn badges by hitting milestones — streaks, top scores, lightning drafts.</p>
+                  </div>
+                ) : (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    {badges.map(b => (
+                      <div key={b.id} style={{ background:"var(--c-bg)", border:"1.5px solid var(--c-border-strong)", borderRadius:10, padding:"10px 12px", display:"flex", flexDirection:"column", gap:4 }}>
+                        <span style={{ fontSize:22 }}>{b.badge_emoji}</span>
+                        <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:600, color:"var(--c-text)", lineHeight:1.2 }}>{b.badge_name}</p>
+                        <p style={{ fontFamily:"'DM Mono', monospace", fontSize:8, color:"var(--c-text-dim)", letterSpacing:"0.04em" }}>
+                          {new Date(b.earned_at).toLocaleDateString("en-GB", { day:"numeric", month:"short" })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* All possible badges preview if none earned */}
+                {badges.length === 0 && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginTop:10 }}>
+                    {[
+                      { emoji:"🏆", name:"First Blood" },
+                      { emoji:"📈", name:"On The Rise" },
+                      { emoji:"🧱", name:"The Wall" },
+                      { emoji:"⚡", name:"Lightning Draft" },
+                      { emoji:"👑", name:"Top of the Pops" },
+                    ].map(b => (
+                      <div key={b.name} style={{ background:"var(--c-bg)", border:"1.5px dashed var(--c-border-strong)", borderRadius:10, padding:"10px 12px", display:"flex", flexDirection:"column", gap:4, opacity:0.45 }}>
+                        <span style={{ fontSize:22, filter:"grayscale(1)" }}>{b.emoji}</span>
+                        <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:600, color:"var(--c-text-muted)", lineHeight:1.2 }}>{b.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         )}

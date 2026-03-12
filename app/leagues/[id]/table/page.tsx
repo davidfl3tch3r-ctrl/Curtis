@@ -15,6 +15,7 @@ type TeamRow = {
   total_points: number;
   gw_points: number;
   draft_position: number;
+  streak: number;
   username: string | null;
   won: number;
   drawn: number;
@@ -60,7 +61,7 @@ export default function LeagueTablePage() {
       // All teams in this league
       const { data: teamsData } = await supabase
         .from("teams")
-        .select("id, name, user_id, total_points, gw_points, draft_position")
+        .select("id, name, user_id, total_points, gw_points, draft_position, streak")
         .eq("league_id", leagueId)
         .order("total_points", { ascending: false });
 
@@ -103,6 +104,7 @@ export default function LeagueTablePage() {
 
       setTeams(teamsData.map(t => ({
         ...t,
+        streak: (t as unknown as { streak?: number }).streak ?? 0,
         username: profileMap[t.user_id] ?? null,
         won:    wdl[t.id]?.w ?? 0,
         drawn:  wdl[t.id]?.d ?? 0,
@@ -178,11 +180,16 @@ export default function LeagueTablePage() {
 
                   {/* Team + manager */}
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {isMe && <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#FF5A1F", flexShrink: 0 }} />}
                       <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: isMe ? 600 : 400, color: isMe ? "var(--c-text)" : "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {team.name}
                       </span>
+                      {team.streak >= 2 && (
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, background: "rgba(255,90,31,0.1)", color: "#FF5A1F", border: "1px solid rgba(255,90,31,0.2)", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                          🔥{team.streak}
+                        </span>
+                      )}
                     </div>
                     {team.username && (
                       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.06em", marginTop: 1 }}>

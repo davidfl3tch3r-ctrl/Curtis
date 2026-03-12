@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavBar } from "@/components/NavBar";
+import { AvatarMenu } from "@/components/AvatarMenu";
 import { useIsMobile } from "@/lib/use-is-mobile";
 
 const DRAFT_STATUS_LABEL: Record<string, string> = {
@@ -32,14 +33,26 @@ type LeagueData = {
   teamCount: number;
   leaderName: string;
   leaderPoints: number;
+  streak: number;
+  gwTopScorerName: string;
+  gwTopScorerPts: number;
+  gwLeagueAvg: number;
 };
+
+function generateHeadline(l: LeagueData): string {
+  if (l.gwPoints === 0 && l.gwTopScorerPts === 0) return "Waiting for the gameweek to kick off.";
+  const isTop = l.gwTopScorerName === l.myTeamName;
+  if (isTop && l.gwPoints > l.gwLeagueAvg * 1.3) return `${l.myTeamName} flying this week with ${l.gwPoints} pts — everyone else is watching.`;
+  if (isTop) return `${l.myTeamName} lead the way with ${l.gwPoints} pts this gameweek.`;
+  if (l.gwTopScorerPts > l.gwLeagueAvg * 1.5) return `${l.gwTopScorerName} on fire with ${l.gwTopScorerPts} pts. The rest of the league scrambles.`;
+  return `${l.gwTopScorerName} top this week with ${l.gwTopScorerPts} pts. League avg: ${l.gwLeagueAvg} pts.`;
+}
 
 export default function LeagueHubPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState("Gaffer");
-  const [initials, setInitials] = useState("?");
   const [leagues, setLeagues] = useState<LeagueData[]>([]);
   const [activeLeague, setActiveLeague] = useState<LeagueData | null>(null);
   const [tab, setTab] = useState("overview");
@@ -63,7 +76,6 @@ export default function LeagueHubPage() {
         : user.email!.split("@")[0].replace(/[._-]/g, " ");
       const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       setGreeting(displayName);
-      setInitials(rawName.slice(0, 2).toUpperCase());
 
       // User's teams, with league data embedded
       const { data: myTeams } = await supabase
@@ -73,6 +85,7 @@ export default function LeagueHubPage() {
           name,
           total_points,
           gw_points,
+          streak,
           league_id,
           league:leagues (
             id,
@@ -90,10 +103,10 @@ export default function LeagueHubPage() {
 
       const leagueIds = myTeams.map((t) => t.league_id as string);
 
-      // All teams in those leagues (for rank + leader calculation)
+      // All teams in those leagues (for rank + leader + digest calculation)
       const { data: allTeams } = await supabase
         .from("teams")
-        .select("id, league_id, name, total_points")
+        .select("id, league_id, name, total_points, gw_points")
         .in("league_id", leagueIds)
         .order("total_points", { ascending: false });
 
@@ -115,6 +128,12 @@ export default function LeagueHubPage() {
         const leader = sorted[0];
         const isLeader = leader?.id === myTeam.id;
 
+        const gwSorted = [...leagueTeams].sort((a, b) => (b.gw_points ?? 0) - (a.gw_points ?? 0));
+        const gwTop = gwSorted[0];
+        const gwLeagueAvg = leagueTeams.length > 0
+          ? Math.round(leagueTeams.reduce((s, t) => s + (t.gw_points ?? 0), 0) / leagueTeams.length)
+          : 0;
+
         return {
           id: league.id,
           name: league.name,
@@ -127,6 +146,10 @@ export default function LeagueHubPage() {
           teamCount: leagueTeams.length,
           leaderName: isLeader ? myTeam.name : (leader?.name ?? "—"),
           leaderPoints: leader?.total_points ?? 0,
+          streak: (myTeam as unknown as { streak?: number }).streak ?? 0,
+          gwTopScorerName: gwTop?.name ?? "—",
+          gwTopScorerPts: gwTop?.gw_points ?? 0,
+          gwLeagueAvg,
         };
       });
 
@@ -169,13 +192,7 @@ export default function LeagueHubPage() {
         right={
           <>
             <ThemeToggle />
-            <div style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: "linear-gradient(135deg, #FF5A1F, #E8400A)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "'DM Mono', monospace", fontSize: 12, color: "white",
-              minWidth: 32, minHeight: 32,
-            }}>{initials}</div>
+            <AvatarMenu />
           </>
         }
       />
@@ -267,7 +284,14 @@ export default function LeagueHubPage() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
-                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, color: "var(--c-text)", marginBottom: 2 }}>{l.name}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, color: "var(--c-text)" }}>{l.name}</p>
+                          {l.streak >= 2 && (
+                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, background: "rgba(255,90,31,0.12)", color: "#FF5A1F", border: "1px solid rgba(255,90,31,0.25)", borderRadius: 5, padding: "1px 6px", letterSpacing: "0.04em" }}>
+                              🔥{l.streak}
+                            </span>
+                          )}
+                        </div>
                         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", letterSpacing: "0.06em" }}>{l.myTeamName}</p>
                       </div>
                       <div style={{ textAlign: "right" }}>
@@ -426,6 +450,42 @@ export default function LeagueHubPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── Weekly Digest ── */}
+              <div style={{ background: "var(--c-bg-elevated)", borderRadius: 16, border: "1.5px solid var(--c-border-strong)", overflow: "hidden" }}>
+                <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--c-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-muted)" }}>This Gameweek</p>
+                  {activeLeague.streak >= 1 && (
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#FF5A1F", letterSpacing: "0.04em" }}>
+                      🔥 {activeLeague.streak}-week streak
+                    </span>
+                  )}
+                </div>
+                <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Headline */}
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: "var(--c-text)", lineHeight: 1.4, fontStyle: "italic" }}>
+                    &ldquo;{generateHeadline(activeLeague)}&rdquo;
+                  </p>
+                  {/* Stats row */}
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ flex: 1, background: "var(--c-bg)", borderRadius: 10, border: "1px solid var(--c-border-strong)", padding: "10px 14px" }}>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 4 }}>Top This GW</p>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text)", marginBottom: 2 }}>{activeLeague.gwTopScorerName}</p>
+                      <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 900, color: "#FF5A1F", lineHeight: 1 }}>{activeLeague.gwTopScorerPts}</p>
+                    </div>
+                    <div style={{ flex: 1, background: "var(--c-bg)", borderRadius: 10, border: "1px solid var(--c-border-strong)", padding: "10px 14px" }}>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 4 }}>Your Score</p>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text)", marginBottom: 2 }}>{activeLeague.myTeamName}</p>
+                      <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 900, color: activeLeague.gwPoints >= activeLeague.gwLeagueAvg ? "#16A34A" : "var(--c-text)", lineHeight: 1 }}>{activeLeague.gwPoints}</p>
+                    </div>
+                    <div style={{ flex: 1, background: "var(--c-bg)", borderRadius: 10, border: "1px solid var(--c-border-strong)", padding: "10px 14px" }}>
+                      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 4 }}>League Avg</p>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text)", marginBottom: 2 }}>All teams</p>
+                      <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 900, color: "var(--c-text-muted)", lineHeight: 1 }}>{activeLeague.gwLeagueAvg}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             </div>
           </div>
