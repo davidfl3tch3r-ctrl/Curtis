@@ -112,9 +112,9 @@ export interface CurtisPlayerStats {
 
 function normalisePosition(apiPos: string): "GK" | "DEF" | "MID" | "FWD" {
   const p = apiPos?.toUpperCase() ?? "";
-  if (p.includes("G")) return "GK";
-  if (p.includes("D")) return "DEF";
-  if (p.includes("M")) return "MID";
+  if (p.startsWith("G")) return "GK";
+  if (p.startsWith("M")) return "MID";
+  if (p.startsWith("D")) return "DEF";
   return "FWD";
 }
 
