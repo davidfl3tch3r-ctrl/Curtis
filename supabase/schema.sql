@@ -85,6 +85,9 @@ $$;
 create policy "Teams visible to league members" on public.teams
   for select to authenticated
   using (league_id in (select public.my_league_ids()));
+create policy "Users can read their own teams" on public.teams
+  for select to authenticated
+  using (user_id = auth.uid());
 create policy "Users can create their own team" on public.teams
   for insert to authenticated
   with check (user_id = auth.uid());
