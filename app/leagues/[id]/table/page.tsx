@@ -116,6 +116,8 @@ export default function LeagueTablePage() {
     { label: "Draft",   href: `/leagues/${leagueId}/draft` },
     { label: "Live",    href: `/leagues/${leagueId}/live` },
     { label: "Table",   href: `/leagues/${leagueId}/table` },
+    { label: "Waivers", href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",  href: `/leagues/${leagueId}/trades` },
   ];
 
   return (

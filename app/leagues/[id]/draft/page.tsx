@@ -445,10 +445,12 @@ export default function DraftRoomPage() {
 
   const navLinks = [
     { label: "Leagues", href: "/" },
-    { label: "Draft", href: `/leagues/${leagueId}/draft` },
+    { label: "Draft",   href: `/leagues/${leagueId}/draft` },
     { label: "Scoring", href: `/leagues/${leagueId}/scoring` },
-    { label: "Live", href: `/leagues/${leagueId}/live` },
-    { label: "Stats", href: `/leagues/${leagueId}/table` },
+    { label: "Live",    href: `/leagues/${leagueId}/live` },
+    { label: "Stats",   href: `/leagues/${leagueId}/table` },
+    { label: "Waivers", href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",  href: `/leagues/${leagueId}/trades` },
   ];
 
   const pickTime = league?.pick_time_seconds ?? 60;
