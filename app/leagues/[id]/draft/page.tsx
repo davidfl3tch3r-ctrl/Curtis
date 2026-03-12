@@ -21,6 +21,7 @@ type DBTeam = {
   name: string;
   user_id: string;
   draft_position: number;
+  is_bot: boolean;
 };
 
 type DBPick = {
@@ -41,6 +42,9 @@ type LeagueConfig = {
   pick_time_seconds: number;
   draft_type: string;
   commissioner_id: string;
+  is_public: boolean;
+  draft_starts_at: string | null;
+  target_teams: number | null;
 };
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -124,6 +128,39 @@ function Timer({ seconds, total }: { seconds: number; total: number }) {
   );
 }
 
+// Auto-countdown for public drafts — triggers fill-bots when deadline arrives
+function DraftCountdown({ target, leagueId, onStart }: { target: string; leagueId: string; onStart: () => void }) {
+  const [label, setLabel] = useState("");
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    function tick() {
+      const diff = new Date(target).getTime() - Date.now();
+      if (diff <= 0) {
+        setLabel("Starting…");
+        if (!firedRef.current) {
+          firedRef.current = true;
+          fetch("/api/draft/fill-bots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ leagueId }),
+          }).then(() => onStart());
+        }
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setLabel(h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [target, leagueId, onStart]);
+
+  return <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#FF5A1F" }}>{label}</span>;
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function DraftRoomPage() {
@@ -190,12 +227,12 @@ export default function DraftRoomPage() {
       const [leagueRes, teamsRes, picksRes, playersRes] = await Promise.all([
         supabase
           .from("leagues")
-          .select("id, name, squad_size, max_teams, draft_status, pick_time_seconds, draft_type, commissioner_id")
+          .select("id, name, squad_size, max_teams, draft_status, pick_time_seconds, draft_type, commissioner_id, is_public, draft_starts_at, target_teams")
           .eq("id", leagueId)
           .single(),
         supabase
           .from("teams")
-          .select("id, name, user_id, draft_position")
+          .select("id, name, user_id, draft_position, is_bot")
           .eq("league_id", leagueId)
           .order("draft_position"),
         supabase
@@ -283,6 +320,33 @@ export default function DraftRoomPage() {
     supabase.from("leagues").update({ draft_status: "complete" }).eq("id", leagueId);
     setLeague(prev => prev ? { ...prev, draft_status: "complete" } : prev);
   }, [isDraftComplete, league, leagueId]);
+
+  // ── Bot auto-pick: first client to see it's a bot's turn fires the pick
+  useEffect(() => {
+    const currentTeamIsBot = currentTeam?.is_bot ?? false;
+    if (!currentTeamIsBot || isDraftComplete || !league) return;
+
+    const timeout = setTimeout(() => {
+      const pickedIds = new Set(picksRef.current.map(p => p.player_id));
+      const best = playersRef.current.find(p => !pickedIds.has(p.id));
+      if (!best || !currentTeam) return;
+
+      fetch("/api/draft/bot-pick", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leagueId,
+          teamId:     currentTeam.id,
+          playerId:   best.id,
+          pickNumber: currentPickNum,
+          round:      currentRound,
+        }),
+      });
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPickNum, isDraftComplete]);
 
   // ── Timer
   useEffect(() => {
@@ -459,35 +523,51 @@ export default function DraftRoomPage() {
               ))}
             </div>
 
-            {isCommissioner ? (
-              <button
-                onClick={startDraft}
-                disabled={teams.length < 1}
-                style={{
-                  width: "100%", padding: "14px",
-                  background: teams.length < 2 ? "#2A2018" : "linear-gradient(135deg,#FF5A1F,#E8400A)",
-                  color: teams.length < 2 ? "#4A3E34" : "white",
-                  border: "none", borderRadius: 10,
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 600,
-                  cursor: teams.length < 2 ? "not-allowed" : "pointer",
-                  boxShadow: teams.length < 2 ? "none" : "0 4px 16px rgba(255,90,31,0.3)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {`Start Draft — ${teams.length} Manager${teams.length === 1 ? "" : "s"}`}
-              </button>
-            ) : (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "14px 16px", borderRadius: 10,
-                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
-              }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF5A1F", animation: "pulse 1.5s infinite", flexShrink: 0 }} />
-                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#A89880" }}>
-                  Waiting for the commissioner to start the draft…
-                </span>
-              </div>
-            )}
+            {(() => {
+              const pastDeadline = league.draft_starts_at ? new Date(league.draft_starts_at) < new Date() : false;
+
+              // Public league past its scheduled time — anyone can trigger fill + start
+              if (league.is_public && pastDeadline) {
+                return (
+                  <button
+                    onClick={async () => {
+                      await fetch("/api/draft/fill-bots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leagueId }) });
+                      setLeague(prev => prev ? { ...prev, draft_status: "live" } : prev);
+                    }}
+                    style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg,#FF5A1F,#E8400A)", color: "white", border: "none", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 16px rgba(255,90,31,0.3)" }}
+                  >
+                    Fill with Bots & Start Draft
+                  </button>
+                );
+              }
+
+              // Public league with future start time — show countdown
+              if (league.is_public && league.draft_starts_at) {
+                return (
+                  <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4A3E34", marginBottom: 6 }}>Draft starts in</div>
+                    <DraftCountdown target={league.draft_starts_at} leagueId={leagueId} onStart={() => setLeague(prev => prev ? { ...prev, draft_status: "live" } : prev)} />
+                  </div>
+                );
+              }
+
+              // Private league: commissioner start button
+              if (isCommissioner) {
+                return (
+                  <button onClick={startDraft} style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg,#FF5A1F,#E8400A)", color: "white", border: "none", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 16px rgba(255,90,31,0.3)" }}>
+                    {`Start Draft — ${teams.length} Manager${teams.length === 1 ? "" : "s"}`}
+                  </button>
+                );
+              }
+
+              // Everyone else: waiting
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FF5A1F", animation: "pulse 1.5s infinite", flexShrink: 0 }} />
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#A89880" }}>Waiting for the commissioner to start the draft…</span>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
@@ -787,10 +867,10 @@ export default function DraftRoomPage() {
                     }}>
                       <div style={{
                         fontFamily: "'DM Mono', monospace", fontSize: 9,
-                        color: team.user_id === currentUserId ? "#FF5A1F" : "#6B5E52",
+                        color: team.user_id === currentUserId ? "#FF5A1F" : team.is_bot ? "#4A3E34" : "#6B5E52",
                         letterSpacing: "0.06em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                       }}>
-                        {team.user_id === currentUserId ? "YOU" : team.name.slice(0, 6)}
+                        {team.user_id === currentUserId ? "YOU" : team.is_bot ? "🤖 BOT" : team.name.slice(0, 6)}
                       </div>
                     </div>
                   ))}
