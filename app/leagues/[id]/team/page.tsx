@@ -303,23 +303,57 @@ export default function TeamPage() {
       const { data: league } = await supabase.from("leagues").select("name").eq("id", leagueId).single();
       if (league) setLeagueName(league.name);
 
-      const { data: team } = await supabase
-        .from("teams")
-        .select("id, name, formation")
-        .eq("league_id", leagueId)
-        .eq("user_id", user.id)
-        .single();
+      // Try selecting formation (migration 005); fall back without it if column missing
+      let team: { id: string; name: string; formation?: string } | null = null;
+      {
+        const { data, error } = await supabase
+          .from("teams")
+          .select("id, name, formation")
+          .eq("league_id", leagueId)
+          .eq("user_id", user.id)
+          .single();
+        if (error) {
+          console.error("[MyTeam] team query error:", error.message);
+          // Retry without formation in case migration hasn't been applied
+          const { data: d2, error: e2 } = await supabase
+            .from("teams")
+            .select("id, name")
+            .eq("league_id", leagueId)
+            .eq("user_id", user.id)
+            .single();
+          if (e2) console.error("[MyTeam] team fallback error:", e2.message);
+          team = d2 ?? null;
+        } else {
+          team = data;
+        }
+      }
 
       if (!team) { setLoading(false); return; }
       setMyTeamId(team.id);
       setMyTeamName(team.name);
-      const f = (team as unknown as { formation?: string }).formation ?? "4-3-3";
+      const f = team.formation ?? "4-3-3";
       setFormation(f);
 
-      const { data: squadData } = await supabase
-        .from("squad_players")
-        .select("id, player_id, is_starting, bench_order, is_captain, is_vice_captain, player:players(name, club, position, gw_points)")
-        .eq("team_id", team.id);
+      // Try selecting captain columns (migration 005); fall back without them if missing
+      let squadData: unknown[] | null = null;
+      {
+        const { data, error } = await supabase
+          .from("squad_players")
+          .select("id, player_id, is_starting, bench_order, is_captain, is_vice_captain, player:players(name, club, position, gw_points)")
+          .eq("team_id", team.id);
+        if (error) {
+          console.error("[MyTeam] squad query error:", error.message);
+          // Retry without captain columns
+          const { data: d2, error: e2 } = await supabase
+            .from("squad_players")
+            .select("id, player_id, is_starting, bench_order, player:players(name, club, position, gw_points)")
+            .eq("team_id", team.id);
+          if (e2) console.error("[MyTeam] squad fallback error:", e2.message);
+          squadData = d2 ?? null;
+        } else {
+          squadData = data;
+        }
+      }
 
       if (!squadData?.length) { setLoading(false); return; }
 
