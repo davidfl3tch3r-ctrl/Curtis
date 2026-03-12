@@ -286,8 +286,9 @@ export default function PyramidPage() {
       {/* Nav */}
       <nav style={{ borderBottom: "1px solid #EDE5D8", padding: "0 24px", height: 56, display: "flex", alignItems: "center", gap: 28, background: "white" }}>
         <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900, color: "#FF5A1F" }}>CURTIS</span>
-        <Link href="/" className="nav-link">Home</Link>
-        <Link href="/pyramid" className="nav-link active">Pyramid</Link>
+        <Link href="/"            className="nav-link">Home</Link>
+        <Link href="/pyramid"     className="nav-link active">Pyramid</Link>
+        <Link href="/fan-leagues" className="nav-link">Fan Leagues</Link>
         <Link href="/draft/queue" className="nav-link">Public Drafts</Link>
       </nav>
 

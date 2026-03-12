@@ -145,9 +145,10 @@ export default function LeagueHubPage() {
         { label: "Trades",   href: `/leagues/${activeLeague.id}/trades` },
         { label: "Chat",     href: `/leagues/${activeLeague.id}/chat` },
         { label: "Messages", href: `/leagues/${activeLeague.id}/messages` },
-        { label: "Pyramid",  href: "/pyramid" },
+        { label: "Pyramid",     href: "/pyramid" },
+        { label: "Fan Leagues", href: "/fan-leagues" },
       ]
-    : [{ label: "Home", href: "/" }, { label: "Pyramid", href: "/pyramid" }];
+    : [{ label: "Home", href: "/" }, { label: "Pyramid", href: "/pyramid" }, { label: "Fan Leagues", href: "/fan-leagues" }];
 
   const gap =
     activeLeague && activeLeague.leaderPoints > activeLeague.myPoints
