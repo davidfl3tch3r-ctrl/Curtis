@@ -691,6 +691,7 @@ export default function MockDraftPage() {
       .select("id, name, club, position, api_rank, season_points")
       .eq("is_available", true)
       .order("season_points", { ascending: false })
+      .limit(1000)
       .then(({ data }) => {
         const list = data && data.length >= 80 ? data : FALLBACK_PLAYERS;
         setPlayers(list as Player[]);

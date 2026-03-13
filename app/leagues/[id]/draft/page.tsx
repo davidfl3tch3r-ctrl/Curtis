@@ -364,7 +364,8 @@ export default function DraftRoomPage() {
           .from("players")
           .select("id, name, club, position, api_rank, season_points")
           .eq("is_available", true)
-          .order("api_rank", { ascending: true, nullsFirst: false }),
+          .order("api_rank", { ascending: true, nullsFirst: false })
+          .limit(1000),
       ]);
 
       if (leagueRes.error || !leagueRes.data) {

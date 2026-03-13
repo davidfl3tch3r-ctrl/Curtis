@@ -300,7 +300,14 @@ export async function fetchCurrentRound(): Promise<number> {
   return match ? parseInt(match[1], 10) : 1;
 }
 
-// Pages through /players?league=39&season=2025 — ~25 calls on free tier
+// Pages through /players?league=39&season=2025 — ~25 calls on free tier.
+// NOTE: This endpoint only returns players with at least 1 appearance in the season.
+// Fringe squad members who haven't played yet won't appear here.
+// To get the full registered squad (including unused players), use:
+//   GET /players/squads?team={teamId}  — but this requires ~20 calls (one per club)
+//   and uses the free tier's 100 req/day budget quickly.
+// For now, syncing via this appearances-based endpoint gives us ~650 players which
+// covers all realistic draft picks. Re-sync early in the season when squads settle.
 export async function fetchAllPremierLeaguePlayers(): Promise<CurtisPlayerRow[]> {
   const all: CurtisPlayerRow[] = [];
   let page = 1;

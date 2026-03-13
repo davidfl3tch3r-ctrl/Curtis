@@ -91,7 +91,7 @@ export async function POST() {
     .select("id, position")
     .eq("is_available", true)
     .order("season_points", { ascending: false })
-    .limit(600);
+    .limit(1000);
 
   if (playerFetchErr || !allPlayers) {
     return NextResponse.json({ error: `Failed to fetch players: ${playerFetchErr?.message}` }, { status: 500 });

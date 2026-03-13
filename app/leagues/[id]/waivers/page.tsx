@@ -153,7 +153,7 @@ export default function WaiversPage() {
       .select("id, name, club, position, season_points, gw_points")
       .eq("is_available", true)
       .order("season_points", { ascending: false })
-      .limit(700);
+      .limit(1000);
 
     const availablePlayers = (players ?? []).filter(p => !ownedIds.has(p.id));
 
