@@ -159,42 +159,46 @@ export default function LiveScoringPage() {
     }
 
     // All matchups this gameweek (for other matches section)
+    // NOTE: Two FKs from matchups→teams (home_team_id, away_team_id) require disambiguation.
+    // Use the FK column hint syntax; if the PostgREST version doesn't support it the join
+    // returns null — so we fetch team names in a separate step instead of a joined select.
+    const MATCHUP_SELECT = "id, home_team_id, away_team_id, home_points, away_points, status, gameweek_id";
+
     let myMatchup: Matchup | null = null;
     if (team) {
-      const MATCHUP_SELECT = "id, home_team_id, away_team_id, home_points, away_points, status, gameweek_id, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)";
+      console.log("[MatchDay] team.id =", team.id, "| gw =", gw?.id, gw?.name);
 
       let typedMatchups: Matchup[] = [];
 
       if (gw) {
-        const { data: allMatchupData } = await supabase
+        const { data: allMatchupData, error: matchupErr } = await supabase
           .from("matchups")
           .select(MATCHUP_SELECT)
           .eq("league_id", leagueId)
           .eq("gameweek_id", gw.id);
+        console.log("[MatchDay] primary query rows:", allMatchupData?.length ?? 0, "| error:", matchupErr?.message ?? "none");
         typedMatchups = (allMatchupData ?? []) as unknown as Matchup[];
       }
 
       // Fallback: if current GW has no matchups, find the most recent GW this team played in.
-      // We filter by home_team_id/away_team_id to ensure we get a GW where this team has a matchup.
-      // We can't rely on ordering by gameweek_id (UUID) for chronological order, so we fetch
-      // multiple, join gameweeks for the number, and sort client-side.
       if (typedMatchups.length === 0) {
-        const { data: fallbackData } = await supabase
+        console.log("[MatchDay] primary empty — trying fallback for team", team.id);
+        const { data: fallbackData, error: fallbackErr } = await supabase
           .from("matchups")
           .select(MATCHUP_SELECT + ", gameweek:gameweeks(id, number, name, status)")
           .eq("league_id", leagueId)
           .or(`home_team_id.eq.${team.id},away_team_id.eq.${team.id}`)
           .limit(100);
+        console.log("[MatchDay] fallback rows:", fallbackData?.length ?? 0, "| error:", fallbackErr?.message ?? "none");
 
         if (fallbackData && fallbackData.length > 0) {
           type FallbackRow = Matchup & { gameweek?: Gameweek };
           const rows = fallbackData as unknown as FallbackRow[];
-          // Sort by gameweek number descending — UUID ordering is unreliable for chronology
           rows.sort((a, b) => (b.gameweek?.number ?? 0) - (a.gameweek?.number ?? 0));
           const mostRecentGwId = rows[0].gameweek_id;
           const fallbackGw = rows[0].gameweek ?? null;
+          console.log("[MatchDay] fallback GW:", fallbackGw?.name, "| gwId:", mostRecentGwId);
 
-          // Fetch ALL matchups for that GW so "Other Matches" section is populated too
           const { data: gwMatchupData } = await supabase
             .from("matchups")
             .select(MATCHUP_SELECT)
@@ -209,9 +213,30 @@ export default function LiveScoringPage() {
         }
       }
 
-      setAllMatchups(typedMatchups);
       myMatchup = typedMatchups.find(m => m.home_team_id === team.id || m.away_team_id === team.id) ?? null;
+      console.log("[MatchDay] typedMatchups:", typedMatchups.length, "| myMatchup:", myMatchup?.id ?? "null");
+      setAllMatchups(typedMatchups);
       setMatchup(myMatchup);
+
+      // Enrich matchups with team names (separate query avoids ambiguous FK join issues)
+      if (typedMatchups.length > 0) {
+        const teamIds = [...new Set(typedMatchups.flatMap(m => [m.home_team_id, m.away_team_id]))];
+        const { data: teamNames } = await supabase
+          .from("teams")
+          .select("id, name")
+          .in("id", teamIds);
+        const nameMap: Record<string, string> = {};
+        for (const t of teamNames ?? []) nameMap[t.id] = t.name;
+
+        const enriched = typedMatchups.map(m => ({
+          ...m,
+          home_team: { name: nameMap[m.home_team_id] ?? "" },
+          away_team: { name: nameMap[m.away_team_id] ?? "" },
+        }));
+        setAllMatchups(enriched as Matchup[]);
+        const enrichedMyMatchup = enriched.find(m => m.home_team_id === team.id || m.away_team_id === team.id) ?? null;
+        setMatchup(enrichedMyMatchup as Matchup | null);
+      }
     }
 
     // Opponent squad

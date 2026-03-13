@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, serviceClient, forbidden } from "@/lib/admin-auth";
+import { roundRobinSchedule } from "@/app/api/matchups/generate/route";
 
 const TEST_TEAM_NAMES = [
   "Fergie's Hairdryers",
@@ -188,13 +189,62 @@ export async function POST() {
   // ── 7. Mark draft complete ────────────────────────────────────────────────
   await sc.from("leagues").update({ draft_status: "complete" }).eq("id", league.id);
 
+  // ── 8. Generate matchups for GW27–30 ─────────────────────────────────────
+  // GW27–29 are complete (with random realistic points); GW30 is upcoming.
+  const { data: gwRows } = await sc
+    .from("gameweeks")
+    .select("id, number, name, status")
+    .in("number", [27, 28, 29, 30])
+    .order("number", { ascending: true });
+
+  const teamIds = allTeams.map(t => t.id);
+  const schedule = roundRobinSchedule(teamIds);
+  const numRounds = schedule.length;
+
+  const matchupRows: {
+    league_id: string; gameweek_id: string;
+    home_team_id: string; away_team_id: string;
+    home_points: number; away_points: number;
+    status: string;
+  }[] = [];
+
+  for (const gw of gwRows ?? []) {
+    const roundIndex = (gw.number - 1) % numRounds;
+    const pairs = schedule[roundIndex];
+    const isComplete = gw.number < 30;
+
+    for (const [home, away] of pairs) {
+      // Realistic GW points: 35–95 range with some variance
+      const homePoints = isComplete ? Math.round((35 + Math.random() * 60) * 10) / 10 : 0;
+      const awayPoints = isComplete ? Math.round((35 + Math.random() * 60) * 10) / 10 : 0;
+      matchupRows.push({
+        league_id:    league.id,
+        gameweek_id:  gw.id,
+        home_team_id: home,
+        away_team_id: away,
+        home_points:  homePoints,
+        away_points:  awayPoints,
+        status:       isComplete ? "complete" : "upcoming",
+      });
+    }
+  }
+
+  let matchupsCreated = 0;
+  if (matchupRows.length) {
+    const { error: matchupErr } = await sc.from("matchups").insert(matchupRows);
+    if (!matchupErr) matchupsCreated = matchupRows.length;
+    else console.error("[seed] matchups insert error:", matchupErr.message);
+  }
+
   return NextResponse.json({
     success: true,
-    message: `Test league seeded: ${TEAM_COUNT} teams, ${SQUAD_SIZE} players each (2 GK / 5 DEF / 5 MID / 3 FWD), draft complete`,
+    message: `Test league seeded: ${TEAM_COUNT} teams, ${SQUAD_SIZE} players each (2 GK / 5 DEF / 5 MID / 3 FWD), draft complete, ${matchupsCreated} matchups created (GW27–30)`,
     leagueName: "The Gaffer's League",
     leagueId: league.id,
     teamCount: TEAM_COUNT,
     playersPerTeam: SQUAD_SIZE,
+    matchupsCreated,
+    gwsFound: gwRows?.map(g => g.name) ?? [],
     debug: { rawPositions, poolSizes: Object.fromEntries(Object.entries(posPool).map(([k, v]) => [k, v.length])) },
   });
 }
