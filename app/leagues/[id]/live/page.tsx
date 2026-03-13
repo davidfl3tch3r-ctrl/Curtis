@@ -44,8 +44,13 @@ type Matchup = {
   home_points: number;
   away_points: number;
   status: string;
+  gameweek_id?: string;
   home_team: { name: string };
   away_team: { name: string };
+};
+
+type OppSquadPlayer = {
+  player: { name: string; club: string; position: string; gw_points: number };
 };
 
 const POS_ORDER = ["GK", "DEF", "MID", "FWD"] as const;
@@ -91,6 +96,8 @@ export default function LiveScoringPage() {
   const [squad, setSquad] = useState<SquadPlayer[]>([]);
   const [matchup, setMatchup] = useState<Matchup | null>(null);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [oppSquad, setOppSquad] = useState<OppSquadPlayer[]>([]);
+  const [allMatchups, setAllMatchups] = useState<Matchup[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [curtisMoment, setCurtisMoment] = useState<{ playerName: string; position: string; club: string; points: number } | null>(null);
@@ -123,7 +130,7 @@ export default function LiveScoringPage() {
       .order("number", { ascending: false })
       .limit(1);
 
-    const gw = gws?.[0] ?? null;
+    let gw = gws?.[0] ?? null;
     setGameweek(gw);
 
     // My team in this league
@@ -151,17 +158,71 @@ export default function LiveScoringPage() {
       setSquad((squadData ?? []) as unknown as SquadPlayer[]);
     }
 
-    // Matchup for this gameweek
-    if (team && gw) {
-      const { data: matchupData } = await supabase
-        .from("matchups")
-        .select("id, home_team_id, away_team_id, home_points, away_points, status, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)")
-        .eq("league_id", leagueId)
-        .eq("gameweek_id", gw.id)
-        .or(`home_team_id.eq.${team.id},away_team_id.eq.${team.id}`)
-        .maybeSingle();
+    // All matchups this gameweek (for other matches section)
+    let myMatchup: Matchup | null = null;
+    if (team) {
+      const MATCHUP_SELECT = "id, home_team_id, away_team_id, home_points, away_points, status, gameweek_id, home_team:teams!home_team_id(name), away_team:teams!away_team_id(name)";
 
-      setMatchup(matchupData as unknown as Matchup | null);
+      let typedMatchups: Matchup[] = [];
+
+      if (gw) {
+        const { data: allMatchupData } = await supabase
+          .from("matchups")
+          .select(MATCHUP_SELECT)
+          .eq("league_id", leagueId)
+          .eq("gameweek_id", gw.id);
+        typedMatchups = (allMatchupData ?? []) as unknown as Matchup[];
+      }
+
+      // Fallback: if current GW has no matchups, find the most recent GW this team played in.
+      // We filter by home_team_id/away_team_id to ensure we get a GW where this team has a matchup.
+      // We can't rely on ordering by gameweek_id (UUID) for chronological order, so we fetch
+      // multiple, join gameweeks for the number, and sort client-side.
+      if (typedMatchups.length === 0) {
+        const { data: fallbackData } = await supabase
+          .from("matchups")
+          .select(MATCHUP_SELECT + ", gameweek:gameweeks(id, number, name, status)")
+          .eq("league_id", leagueId)
+          .or(`home_team_id.eq.${team.id},away_team_id.eq.${team.id}`)
+          .limit(100);
+
+        if (fallbackData && fallbackData.length > 0) {
+          type FallbackRow = Matchup & { gameweek?: Gameweek };
+          const rows = fallbackData as unknown as FallbackRow[];
+          // Sort by gameweek number descending — UUID ordering is unreliable for chronology
+          rows.sort((a, b) => (b.gameweek?.number ?? 0) - (a.gameweek?.number ?? 0));
+          const mostRecentGwId = rows[0].gameweek_id;
+          const fallbackGw = rows[0].gameweek ?? null;
+
+          // Fetch ALL matchups for that GW so "Other Matches" section is populated too
+          const { data: gwMatchupData } = await supabase
+            .from("matchups")
+            .select(MATCHUP_SELECT)
+            .eq("league_id", leagueId)
+            .eq("gameweek_id", mostRecentGwId);
+          typedMatchups = (gwMatchupData ?? []) as unknown as Matchup[];
+
+          if (fallbackGw) {
+            gw = fallbackGw;
+            setGameweek(fallbackGw);
+          }
+        }
+      }
+
+      setAllMatchups(typedMatchups);
+      myMatchup = typedMatchups.find(m => m.home_team_id === team.id || m.away_team_id === team.id) ?? null;
+      setMatchup(myMatchup);
+    }
+
+    // Opponent squad
+    if (myMatchup && team) {
+      const oppTeamId = myMatchup.home_team_id === team.id ? myMatchup.away_team_id : myMatchup.home_team_id;
+      const { data: oppData } = await supabase
+        .from("squad_players")
+        .select("player:players(name, club, position, gw_points)")
+        .eq("team_id", oppTeamId)
+        .eq("is_starting", true);
+      setOppSquad((oppData ?? []) as unknown as OppSquadPlayer[]);
     }
 
     // Fixtures for this gameweek
@@ -297,7 +358,7 @@ export default function LiveScoringPage() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
       `}</style>
 
-      <NavBar links={navLinks} activeLabel="Live" right={<>{syncButton}<ThemeToggle size="sm" /></>} />
+      <NavBar links={navLinks} activeLabel="Match Day" right={<>{syncButton}<ThemeToggle size="sm" /></>} />
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: isMobile ? "20px 16px" : "24px 20px" }}>
 
@@ -334,161 +395,200 @@ export default function LiveScoringPage() {
             </Link>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 300px", gap: 20 }}>
-
-            {/* LEFT — Squad */}
-            <div>
-              {/* Curtis Moment banner */}
-              {curtisMoment && (
-                <div style={{
-                  background: "linear-gradient(135deg, #1C1410 0%, #3D2E22 100%)",
-                  border: "1.5px solid rgba(255,90,31,0.4)",
-                  borderRadius: 14, padding: "16px 20px", marginBottom: 16,
-                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-                }}>
-                  <div>
-                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 6 }}>
-                      ⚡ Curtis Moment
-                    </div>
-                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: "white", lineHeight: 1.3 }}>
-                      {curtisMoment.playerName}{" "}
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>({curtisMoment.position})</span>{" "}
-                      <span style={{ color: "#FF5A1F" }}>is leading this gameweek!</span>
-                    </p>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 4, letterSpacing: "0.04em" }}>
-                      {curtisMoment.points.toFixed(1)} pts · {curtisMoment.club}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const url = window.location.href;
-                      navigator.clipboard.writeText(url).then(() => alert("Link copied!"));
-                    }}
-                    style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid rgba(255,90,31,0.4)", background: "rgba(255,90,31,0.12)", color: "#FF5A1F", fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
-                  >
-                    Share
-                  </button>
+          <>
+            {/* ── Curtis Moment ── */}
+            {curtisMoment && (
+              <div style={{
+                background: "linear-gradient(135deg, #1C1410 0%, #3D2E22 100%)",
+                border: "1.5px solid rgba(255,90,31,0.4)",
+                borderRadius: 14, padding: "14px 20px", marginBottom: 16,
+                display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+              }}>
+                <div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 5 }}>⚡ Curtis Moment</div>
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, color: "white", lineHeight: 1.3 }}>
+                    {curtisMoment.playerName} <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>({curtisMoment.position})</span>{" "}
+                    <span style={{ color: "#FF5A1F" }}>leads this gameweek!</span>
+                  </p>
                 </div>
-              )}
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#FF5A1F", flexShrink: 0 }}>
+                  {curtisMoment.points.toFixed(1)}
+                </div>
+              </div>
+            )}
 
-              {/* Matchup banner */}
+            {/* ── Matchup scoreboard (prominent) ── */}
+            <div style={{
+              background: "var(--c-bg-elevated)", borderRadius: 16,
+              border: "1.5px solid var(--c-border-strong)", padding: "20px 24px", marginBottom: 20,
+            }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 14 }}>
+                {gameweek.name} · {gameweek.status === "live" ? "● In Progress" : "Complete"}
+              </div>
               {matchup ? (
-                <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, padding: "20px 24px", marginBottom: 20, border: "1.5px solid var(--c-border)" }}>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 14 }}>Matchup</div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", alignItems: "center", gap: isMobile ? 8 : 16 }}>
-                    <div>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, color: "var(--c-text)", marginBottom: 4 }}>{myTeamName}</div>
-                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 900, color: "#FF5A1F", lineHeight: 1 }}>{myMatchPts.toFixed(1)}</div>
-                    </div>
-                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "var(--c-text-dim)", letterSpacing: "0.1em" }}>VS</div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, color: "var(--c-text-muted)", marginBottom: 4 }}>{oppTeamName}</div>
-                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 900, color: "var(--c-text-muted)", lineHeight: 1 }}>{(oppMatchPts ?? 0).toFixed(1)}</div>
-                    </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 15, fontWeight: 700, color: "var(--c-text)", marginBottom: 4 }}>{myTeamName}</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 36 : 48, fontWeight: 900, color: "#FF5A1F", lineHeight: 1 }}>{myMatchPts.toFixed(1)}</div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", marginTop: 4 }}>your team</div>
+                  </div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, color: "var(--c-text-dim)", letterSpacing: "0.12em", textAlign: "center" }}>VS</div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 15, fontWeight: 600, color: "var(--c-text-muted)", marginBottom: 4 }}>{oppTeamName}</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 36 : 48, fontWeight: 900, color: "var(--c-text-muted)", lineHeight: 1 }}>{(oppMatchPts ?? 0).toFixed(1)}</div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", marginTop: 4 }}>opponent</div>
                   </div>
                 </div>
               ) : (
-                <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, padding: "16px 24px", marginBottom: 20, border: "1.5px solid var(--c-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                   <div>
-                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 4 }}>{myTeamName}</div>
-                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 900, color: "#FF5A1F", lineHeight: 1 }}>{myGWPoints.toFixed(1)}</div>
-                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", marginTop: 4, letterSpacing: "0.06em" }}>Gameweek points</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "var(--c-text)", marginBottom: 4 }}>{myTeamName}</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 44, fontWeight: 900, color: "#FF5A1F", lineHeight: 1 }}>{myGWPoints.toFixed(1)}</div>
                   </div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", letterSpacing: "0.06em" }}>No matchup scheduled</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>No matchup scheduled</div>
                 </div>
               )}
+            </div>
 
-              {/* Starters */}
-              {squad.length === 0 ? (
-                <div style={{ padding: "40px 0", textAlign: "center" }}>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)", marginBottom: 8 }}>No squad picked yet</div>
-                  <Link href={`/leagues/${leagueId}/draft`} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#FF5A1F", textDecoration: "none" }}>Go to Draft →</Link>
+            {/* ── Dual squad view ── */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 0 : 16, marginBottom: 24 }}>
+
+              {/* YOUR team */}
+              <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border)", overflow: "hidden" }}>
+                <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--c-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--c-text)" }}>{myTeamName}</span>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 900, color: "#FF5A1F" }}>{myMatchPts.toFixed(1)}</span>
                 </div>
-              ) : (
-                <>
-                  {(["GK", "DEF", "MID", "FWD"] as const).map(pos => {
+                {squad.length === 0 ? (
+                  <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                    <Link href={`/leagues/${leagueId}/draft`} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#FF5A1F", textDecoration: "none" }}>No squad — go to Draft →</Link>
+                  </div>
+                ) : (
+                  (["GK", "DEF", "MID", "FWD"] as const).map(pos => {
                     const posPlayers = starters.filter(s => s.player?.position === pos);
-                    if (posPlayers.length === 0) return null;
+                    if (!posPlayers.length) return null;
                     const pm = POS_META[pos];
                     return (
-                      <div key={pos} style={{ marginBottom: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", padding: "3px 7px", borderRadius: 5, background: pm.bg, color: pm.color }}>{pos}</span>
+                      <div key={pos}>
+                        <div style={{ padding: "4px 16px", background: pm.bg + "33" }}>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", color: pm.color }}>{pos}</span>
                         </div>
-                        {posPlayers.map(sp => (
-                          <div key={sp.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", marginBottom: 4 }}>
-                            <ClubBadge club={sp.player?.club ?? ""} size={28} />
-                            <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: "var(--c-text)" }}>{sp.player?.name}</span>
-                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{sp.player?.club}</span>
-                            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: (sp.player?.gw_points ?? 0) > 0 ? "#FF5A1F" : "var(--c-text-dim)", minWidth: 40, textAlign: "right" }}>
+                        {posPlayers.map((sp, i) => (
+                          <div key={sp.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderBottom: i < posPlayers.length - 1 ? "1px solid var(--c-border)" : "none" }}>
+                            <ClubBadge club={sp.player?.club ?? ""} size={22} />
+                            <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sp.player?.name}</span>
+                            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: (sp.player?.gw_points ?? 0) > 0 ? "#FF5A1F" : "var(--c-text-dim)", minWidth: 32, textAlign: "right" }}>
                               {(sp.player?.gw_points ?? 0).toFixed(1)}
                             </span>
                           </div>
                         ))}
                       </div>
                     );
-                  })}
+                  })
+                )}
+              </div>
 
-                  {/* Bench */}
-                  {bench.length > 0 && (
-                    <div style={{ marginTop: 20 }}>
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 8 }}>Bench</div>
-                      {bench.map(sp => (
-                        <div key={sp.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 8, background: "var(--c-card)", border: "1px solid var(--c-card-border)", marginBottom: 3, opacity: 0.6 }}>
-                          <ClubBadge club={sp.player?.club ?? ""} size={24} />
-                          <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)" }}>{sp.player?.name}</span>
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)" }}>{sp.player?.position}</span>
-                          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 600, color: "var(--c-text-dim)", minWidth: 36, textAlign: "right" }}>
-                            {(sp.player?.gw_points ?? 0).toFixed(1)}
-                          </span>
+              {/* OPPONENT team */}
+              {isMobile && matchup && (
+                <div style={{ height: 1, background: "var(--c-border-strong)", margin: "16px 0" }} />
+              )}
+              {matchup ? (
+                <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border)", overflow: "hidden" }}>
+                  <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--c-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: "var(--c-text-muted)" }}>{oppTeamName}</span>
+                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 900, color: "var(--c-text-muted)" }}>{(oppMatchPts ?? 0).toFixed(1)}</span>
+                  </div>
+                  {oppSquad.length === 0 ? (
+                    <div style={{ padding: "24px 16px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>No data yet</div>
+                  ) : (
+                    (["GK", "DEF", "MID", "FWD"] as const).map(pos => {
+                      const posPlayers = oppSquad.filter(s => s.player?.position === pos);
+                      if (!posPlayers.length) return null;
+                      const pm = POS_META[pos];
+                      return (
+                        <div key={pos}>
+                          <div style={{ padding: "4px 16px", background: pm.bg + "33" }}>
+                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", color: pm.color }}>{pos}</span>
+                          </div>
+                          {posPlayers.map((sp, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderBottom: i < posPlayers.length - 1 ? "1px solid var(--c-border)" : "none" }}>
+                              <ClubBadge club={sp.player?.club ?? ""} size={22} />
+                              <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sp.player?.name}</span>
+                              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: (sp.player?.gw_points ?? 0) > 0 ? "var(--c-text)" : "var(--c-text-dim)", minWidth: 32, textAlign: "right" }}>
+                                {(sp.player?.gw_points ?? 0).toFixed(1)}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })
                   )}
-                </>
+                </div>
+              ) : (
+                <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>No matchup this gameweek</span>
+                </div>
               )}
             </div>
 
-            {/* RIGHT — Fixtures */}
+            {/* ── Other matches in this GW ── */}
+            {allMatchups.filter(m => m.id !== matchup?.id).length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 10 }}>
+                  Other Matches · {gameweek.name}
+                </div>
+                <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                  {allMatchups.filter(m => m.id !== matchup?.id).map(m => (
+                    <div key={m.id} style={{
+                      flexShrink: 0, background: "var(--c-bg-elevated)", borderRadius: 12,
+                      border: "1px solid var(--c-border)", padding: "12px 16px", minWidth: 180,
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "var(--c-text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{m.home_team?.name}</span>
+                        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--c-text)", flexShrink: 0 }}>{m.home_points.toFixed(1)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{m.away_team?.name}</span>
+                        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--c-text-muted)", flexShrink: 0 }}>{m.away_points.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Fixtures ── */}
             <div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 12 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginBottom: 10 }}>
                 {gameweek.name} Fixtures
               </div>
-
               {fixtures.length === 0 ? (
-                <div style={{ padding: "24px 0", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", textAlign: "center" }}>
+                <div style={{ padding: "20px 0", fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)" }}>
                   No fixtures — sync scores to populate
                 </div>
               ) : (
-                fixtures.map(f => (
-                  <div key={f.id} style={{ padding: "10px 14px", borderRadius: 10, background: "var(--c-bg-elevated)", border: `1px solid ${f.status === "live" ? "rgba(255,90,31,0.2)" : "var(--c-border)"}`, marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {/* Status dot */}
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: f.status === "live" ? "#FF5A1F" : f.status === "complete" ? "var(--c-success)" : "var(--c-text-dim)", flexShrink: 0, ...(f.status === "live" ? { animation: "pulse 1.5s infinite" } : {}) }} />
-
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-                        <ClubBadge club={f.home_club} size={20} />
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{f.home_club}</span>
-                        {f.status !== "scheduled" ? (
-                          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--c-text)", margin: "0 4px" }}>
-                            {f.home_score ?? 0} – {f.away_score ?? 0}
-                          </span>
-                        ) : (
-                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", margin: "0 4px" }}>vs</span>
-                        )}
-                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{f.away_club}</span>
-                        <ClubBadge club={f.away_club} size={20} />
-                      </div>
-
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: f.status === "live" ? "#FF5A1F" : "var(--c-text-dim)", letterSpacing: "0.06em", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {fixtures.map(f => (
+                    <div key={f.id} style={{ padding: "9px 14px", borderRadius: 10, background: "var(--c-bg-elevated)", border: `1px solid ${f.status === "live" ? "rgba(255,90,31,0.25)" : "var(--c-border)"}`, display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: f.status === "live" ? "#FF5A1F" : f.status === "complete" ? "#16A34A" : "var(--c-text-dim)", flexShrink: 0, ...(f.status === "live" ? { animation: "pulse 1.5s infinite" } : {}) }} />
+                      <ClubBadge club={f.home_club} size={18} />
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{f.home_club}</span>
+                      {f.status !== "scheduled" ? (
+                        <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "var(--c-text)" }}>{f.home_score ?? 0}–{f.away_score ?? 0}</span>
+                      ) : (
+                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)" }}>vs</span>
+                      )}
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{f.away_club}</span>
+                      <ClubBadge club={f.away_club} size={18} />
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: f.status === "live" ? "#FF5A1F" : "var(--c-text-dim)", letterSpacing: "0.06em", flexShrink: 0 }}>
                         {f.status === "live" ? `${f.minute}'` : f.status === "complete" ? "FT" : new Date(f.kickoff).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
+                      </span>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -12,52 +12,53 @@ import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
 
 type PosType = "GK" | "DEF" | "MID" | "FWD";
 
-interface FormationLine { count: number; y: number; pos: PosType }
+interface FormationLine { xs: number[]; y: number; pos: PosType }
 interface FormationSlot { idx: number; x: number; y: number; pos: PosType }
 
+// x values are % from left edge. Rows listed bottom→top (GK first, FWD last).
 const FORMATIONS: Record<string, FormationLine[]> = {
   "4-3-3": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 4, y: 67, pos: "DEF" },
-    { count: 3, y: 48, pos: "MID" },
-    { count: 3, y: 26, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [14, 38, 62, 86],        y: 67, pos: "DEF" },
+    { xs: [22, 50, 78],            y: 48, pos: "MID" },
+    { xs: [25, 50, 75],            y: 26, pos: "FWD" },
   ],
   "4-4-2": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 4, y: 67, pos: "DEF" },
-    { count: 4, y: 47, pos: "MID" },
-    { count: 2, y: 24, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [14, 38, 62, 86],        y: 67, pos: "DEF" },
+    { xs: [14, 38, 62, 86],        y: 47, pos: "MID" },
+    { xs: [35, 65],                y: 24, pos: "FWD" },
   ],
   "4-2-3-1": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 4, y: 69, pos: "DEF" },
-    { count: 2, y: 56, pos: "MID" },
-    { count: 3, y: 40, pos: "MID" },
-    { count: 1, y: 22, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [14, 38, 62, 86],        y: 69, pos: "DEF" },
+    { xs: [35, 65],                y: 56, pos: "MID" },
+    { xs: [22, 50, 78],            y: 40, pos: "MID" },
+    { xs: [50],                    y: 22, pos: "FWD" },
   ],
   "3-5-2": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 3, y: 67, pos: "DEF" },
-    { count: 5, y: 47, pos: "MID" },
-    { count: 2, y: 24, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [25, 50, 75],            y: 67, pos: "DEF" },
+    { xs: [10, 28, 50, 72, 90],    y: 47, pos: "MID" },
+    { xs: [38, 62],                y: 24, pos: "FWD" },
   ],
   "3-4-3": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 3, y: 67, pos: "DEF" },
-    { count: 4, y: 47, pos: "MID" },
-    { count: 3, y: 24, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [25, 50, 75],            y: 67, pos: "DEF" },
+    { xs: [18, 40, 60, 82],        y: 47, pos: "MID" },
+    { xs: [25, 50, 75],            y: 24, pos: "FWD" },
   ],
   "5-3-2": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 5, y: 67, pos: "DEF" },
-    { count: 3, y: 47, pos: "MID" },
-    { count: 2, y: 24, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [10, 27, 50, 73, 90],    y: 67, pos: "DEF" },
+    { xs: [25, 50, 75],            y: 47, pos: "MID" },
+    { xs: [38, 62],                y: 24, pos: "FWD" },
   ],
   "5-4-1": [
-    { count: 1, y: 85, pos: "GK"  },
-    { count: 5, y: 68, pos: "DEF" },
-    { count: 4, y: 47, pos: "MID" },
-    { count: 1, y: 23, pos: "FWD" },
+    { xs: [50],                    y: 85, pos: "GK"  },
+    { xs: [10, 27, 50, 73, 90],    y: 68, pos: "DEF" },
+    { xs: [18, 40, 60, 82],        y: 47, pos: "MID" },
+    { xs: [50],                    y: 23, pos: "FWD" },
   ],
 };
 
@@ -66,14 +67,22 @@ function getFormationSlots(formation: string): FormationSlot[] {
   const slots: FormationSlot[] = [];
   let idx = 0;
   for (const line of lines) {
-    const xs = line.count === 1
-      ? [50]
-      : Array.from({ length: line.count }, (_, i) => 9 + (i * (82 / (line.count - 1))));
-    for (const x of xs) {
+    for (const x of line.xs) {
       slots.push({ idx: idx++, x, y: line.y, pos: line.pos });
     }
   }
+  // Debug: log FWD slot positions so we can verify formations visually
+  const fwdSlots = slots.filter(s => s.pos === "FWD");
+  console.log(`[formation ${formation}] FWD slots:`, fwdSlots.map(s => `slot${s.idx} x=${s.x} y=${s.y}`));
   return slots;
+}
+
+function normalisePos(raw: string): PosType {
+  const p = (raw ?? "").toUpperCase();
+  if (p === "GK"  || p.startsWith("G")) return "GK";
+  if (p === "DEF" || p.startsWith("D")) return "DEF";
+  if (p === "MID" || p.startsWith("M")) return "MID";
+  return "FWD"; // Attacker, Forward, Striker, F, A…
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,9 +117,13 @@ const CLUB_COLORS: Record<string, string> = {
 };
 
 function shortName(name: string): string {
-  const parts = name.split(" ");
-  if (parts.length === 1) return name.slice(0, 9);
-  return parts[parts.length - 1].slice(0, 9);
+  // Take the last space-delimited part (surname)
+  const spaceParts = name.trim().split(" ");
+  const surname = spaceParts[spaceParts.length - 1];
+  // For hyphenated surnames (e.g. "Alexander-Arnold"), take the last segment
+  const hyphenParts = surname.split("-");
+  const display = hyphenParts[hyphenParts.length - 1];
+  return display.length > 10 ? display.slice(0, 10) : display;
 }
 
 // ─── Countdown to lockout ─────────────────────────────────────────────────────
@@ -144,7 +157,15 @@ function useCountdown(target: Date) {
 function assignToFormation(players: SquadPlayer[], formation: string): { starters: SquadPlayer[]; bench: SquadPlayer[] } {
   const slots = getFormationSlots(formation);
   const byPos: Record<PosType, SquadPlayer[]> = { GK: [], DEF: [], MID: [], FWD: [] };
-  for (const p of players) byPos[p.position].push(p);
+  for (const p of players) {
+    if (!byPos[p.position]) {
+      console.warn(`[assignToFormation] unknown position "${p.position}" for player ${p.name} — defaulting to FWD`);
+      byPos["FWD"].push(p);
+    } else {
+      byPos[p.position].push(p);
+    }
+  }
+  console.log(`[assignToFormation ${formation}] pool sizes:`, { GK: byPos.GK.length, DEF: byPos.DEF.length, MID: byPos.MID.length, FWD: byPos.FWD.length });
 
   // Sort each position group by gwPoints desc
   for (const pos of Object.keys(byPos) as PosType[]) {
@@ -225,17 +246,18 @@ function PlayerCard({ player, selected, swapMode, onClick, cardWidth }: PlayerCa
           </div>
         )}
       </div>
-      {/* Name chip */}
+      {/* Name chip — width capped to avatar circle, text clipped */}
       <div style={{
         background: "rgba(0,0,0,0.7)",
         backdropFilter: "blur(4px)",
         borderRadius: 4,
         padding: "2px 5px",
         textAlign: "center",
-        maxWidth: cardWidth + 8,
+        width: cardWidth,
+        overflow: "hidden",
         border: selected ? "1px solid #FF5A1F" : "1px solid rgba(255,255,255,0.15)",
       }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: Math.max(cardWidth * 0.22, 9), fontWeight: 600, color: "white", lineHeight: 1.2, whiteSpace: "nowrap" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: Math.max(cardWidth * 0.22, 9), fontWeight: 600, color: "white", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {shortName(player.name)}
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
@@ -362,7 +384,7 @@ export default function TeamPage() {
         name: r.player?.name ?? "",
         shortName: shortName(r.player?.name ?? ""),
         club: r.player?.club ?? "",
-        position: (r.player?.position ?? "FWD") as PosType,
+        position: normalisePos(r.player?.position ?? "FWD"),
         gwPoints: r.player?.gw_points ?? 0,
         isCaptain: r.is_captain ?? false,
         isVC: r.is_vice_captain ?? false,
@@ -384,14 +406,11 @@ export default function TeamPage() {
         .filter(p => !p.isStarting)
         .sort((a, b) => (a.benchOrder ?? 99) - (b.benchOrder ?? 99));
 
-      if (savedStarters.length === 11) {
-        setStarters(savedStarters);
-        setBench(savedBench);
-      } else {
-        const { starters: s, bench: b } = assignToFormation(mapped, f);
-        setStarters(s);
-        setBench(b);
-      }
+      // Always run assignToFormation so starters[i] aligns with slots[i]
+      // (bench_order from DB reflects draft/save order, not formation slot order)
+      const { starters: s, bench: b } = assignToFormation(mapped, f);
+      setStarters(s);
+      setBench(b);
       setLoading(false);
     }
     load();

@@ -73,20 +73,39 @@ export async function POST() {
 
   const allTeams = [myTeam, ...botTeams];
 
-  // ── 3. Fetch players per position ─────────────────────────────────────────
-  const fetchPos = async (pos: string, limit: number) => {
-    const { data } = await sc.from("players").select("id").eq("position", pos).eq("is_available", true).limit(limit);
-    return (data ?? []).map((p: { id: string }) => p.id);
-  };
+  // ── 3. Fetch all available players and normalise positions ───────────────
+  // Players may be stored with raw API-Football values ("Attacker", "Midfielder",
+  // "Goalkeeper", "Defender") instead of our canonical codes. Normalise here so
+  // the position pools are always populated correctly.
+  function normalisePos(raw: string): "GK" | "DEF" | "MID" | "FWD" {
+    const p = (raw ?? "").toUpperCase();
+    if (p === "GK"  || p.startsWith("G")) return "GK";
+    if (p === "DEF" || p.startsWith("D")) return "DEF";
+    if (p === "MID" || p.startsWith("M")) return "MID";
+    return "FWD"; // Attacker, Forward, Striker, FWD, F, A…
+  }
 
-  const [gks, defs, mids, fwds] = await Promise.all([
-    fetchPos("GK",  TEAM_COUNT * 2 + 4),   // 20 GKs
-    fetchPos("DEF", TEAM_COUNT * 5 + 8),   // 48 DEFs
-    fetchPos("MID", TEAM_COUNT * 5 + 8),   // 48 MIDs
-    fetchPos("FWD", TEAM_COUNT * 3 + 6),   // 30 FWDs
-  ]);
+  const { data: allPlayers, error: playerFetchErr } = await sc
+    .from("players")
+    .select("id, position")
+    .eq("is_available", true)
+    .order("season_points", { ascending: false })
+    .limit(600);
 
-  const posPool: Record<string, string[]> = { GK: gks, DEF: defs, MID: mids, FWD: fwds };
+  if (playerFetchErr || !allPlayers) {
+    return NextResponse.json({ error: `Failed to fetch players: ${playerFetchErr?.message}` }, { status: 500 });
+  }
+
+  // Debug: log distinct raw position values so we can see what's in the DB
+  const rawPositions = [...new Set(allPlayers.map((p: { id: string; position: string }) => p.position))];
+  console.log("[seed] raw position values in DB:", rawPositions);
+
+  const posPool: Record<string, string[]> = { GK: [], DEF: [], MID: [], FWD: [] };
+  for (const p of allPlayers as Array<{ id: string; position: string }>) {
+    const norm = normalisePos(p.position);
+    posPool[norm].push(p.id);
+  }
+
   const needed = { GK: TEAM_COUNT * 2, DEF: TEAM_COUNT * 5, MID: TEAM_COUNT * 5, FWD: TEAM_COUNT * 3 };
   const missing = Object.entries(needed)
     .filter(([pos, n]) => posPool[pos].length < n)
@@ -95,8 +114,9 @@ export async function POST() {
   if (missing.length) {
     await sc.from("leagues").update({ draft_status: "complete" }).eq("id", league.id);
     return NextResponse.json({
-      warning: `Not enough players in DB. ${missing.join("; ")}. Add player data first. League/teams created but squads empty.`,
+      warning: `Not enough players in DB. ${missing.join("; ")}. Raw positions found: ${rawPositions.join(", ")}. Add player data first. League/teams created but squads empty.`,
       leagueId: league.id,
+      debug: { rawPositions, poolSizes: Object.fromEntries(Object.entries(posPool).map(([k, v]) => [k, v.length])) },
     });
   }
 
@@ -175,5 +195,6 @@ export async function POST() {
     leagueId: league.id,
     teamCount: TEAM_COUNT,
     playersPerTeam: SQUAD_SIZE,
+    debug: { rawPositions, poolSizes: Object.fromEntries(Object.entries(posPool).map(([k, v]) => [k, v.length])) },
   });
 }

@@ -23,19 +23,19 @@ export function useLeagueNavLinks(leagueId: string) {
   }, [leagueId]);
 
   return [
-    { label: "Home",     href: "/" },
-    { label: "My Team",  href: `/leagues/${leagueId}/team` },
+    { label: "Home",          href: "/" },
+    { label: "My Team",       href: `/leagues/${leagueId}/team` },
     // Hide Draft link once draft is complete (null = loading, show it until we know)
     ...(draftComplete !== true
       ? [{ label: "Draft", href: `/leagues/${leagueId}/draft` }]
       : []),
-    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
-    { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Stats",    href: `/leagues/${leagueId}/table` },
-    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
-    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
-    { label: "Messages", href: `/leagues/${leagueId}/messages` },
-    { label: "Settings", href: `/leagues/${leagueId}/settings` },
+    { label: "Match Day",     href: `/leagues/${leagueId}/live` },
+    { label: "League Table",  href: `/leagues/${leagueId}/table` },
+    { label: "Waivers",       href: `/leagues/${leagueId}/waivers` },
+    { label: "Trades",        href: `/leagues/${leagueId}/trades` },
+    { label: "Chat",          href: `/leagues/${leagueId}/chat` },
+    { label: "Messages",      href: `/leagues/${leagueId}/messages` },
+    { label: "Settings",      href: `/leagues/${leagueId}/settings` },
+    { label: "Scoring",       href: `/leagues/${leagueId}/scoring` },
   ];
 }

@@ -473,7 +473,7 @@ export default function SquadPage() {
         ::-webkit-scrollbar-thumb { background:var(--c-border-strong); border-radius:2px; }
       `}</style>
 
-      <NavBar links={navLinks} activeLabel="Stats" right={<ThemeToggle size="sm" />} />
+      <NavBar links={navLinks} activeLabel="League Table" right={<ThemeToggle size="sm" />} />
 
       <div style={{ maxWidth:1060, margin:"0 auto", padding: isMobile ? "20px 16px" : "40px 40px" }}>
 

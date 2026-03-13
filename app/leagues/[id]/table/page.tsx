@@ -22,6 +22,7 @@ type TeamRow = {
   drawn: number;
   lost: number;
   played: number;
+  form: ("W" | "D" | "L")[]; // last 5, oldest first
 };
 
 export default function LeagueTablePage() {
@@ -78,29 +79,41 @@ export default function LeagueTablePage() {
       const profileMap: Record<string, string> = {};
       for (const p of profiles ?? []) profileMap[p.id] = p.username;
 
-      // Get matchup W/D/L from matchups table
+      // Get matchup W/D/L + form from matchups table (joined with gameweek for ordering)
       const { data: matchups } = await supabase
         .from("matchups")
-        .select("home_team_id, away_team_id, home_points, away_points, status")
+        .select("home_team_id, away_team_id, home_points, away_points, status, gameweek:gameweeks(number)")
         .eq("league_id", leagueId)
         .eq("status", "complete");
 
-      const wdl: Record<string, { w: number; d: number; l: number; played: number }> = {};
-      for (const t of teamsData) wdl[t.id] = { w: 0, d: 0, l: 0, played: 0 };
+      type MatchupRow = {
+        home_team_id: string; away_team_id: string;
+        home_points: number; away_points: number; status: string;
+        gameweek: { number: number } | null;
+      };
 
-      for (const m of matchups ?? []) {
+      const wdl: Record<string, { w: number; d: number; l: number; played: number }> = {};
+      const formMap: Record<string, Array<{ gw: number; result: "W" | "D" | "L" }>> = {};
+      for (const t of teamsData) { wdl[t.id] = { w: 0, d: 0, l: 0, played: 0 }; formMap[t.id] = []; }
+
+      for (const m of (matchups ?? []) as unknown as MatchupRow[]) {
         const hId = m.home_team_id;
         const aId = m.away_team_id;
         if (!wdl[hId] || !wdl[aId]) continue;
+        const gwNum = m.gameweek?.number ?? 0;
         wdl[hId].played++;
         wdl[aId].played++;
-        if (m.home_points > m.away_points) {
-          wdl[hId].w++; wdl[aId].l++;
-        } else if (m.home_points < m.away_points) {
-          wdl[hId].l++; wdl[aId].w++;
-        } else {
-          wdl[hId].d++; wdl[aId].d++;
-        }
+        let hRes: "W" | "D" | "L", aRes: "W" | "D" | "L";
+        if (m.home_points > m.away_points)      { hRes = "W"; aRes = "L"; wdl[hId].w++; wdl[aId].l++; }
+        else if (m.home_points < m.away_points) { hRes = "L"; aRes = "W"; wdl[hId].l++; wdl[aId].w++; }
+        else                                    { hRes = "D"; aRes = "D"; wdl[hId].d++; wdl[aId].d++; }
+        formMap[hId].push({ gw: gwNum, result: hRes });
+        formMap[aId].push({ gw: gwNum, result: aRes });
+      }
+
+      // Sort each team's form by gameweek, take last 5
+      for (const id of Object.keys(formMap)) {
+        formMap[id].sort((a, b) => a.gw - b.gw);
       }
 
       setTeams(teamsData.map(t => ({
@@ -111,6 +124,7 @@ export default function LeagueTablePage() {
         drawn:  wdl[t.id]?.d ?? 0,
         lost:   wdl[t.id]?.l ?? 0,
         played: wdl[t.id]?.played ?? 0,
+        form:   formMap[t.id]?.slice(-5).map(f => f.result) ?? [],
       })));
 
       setLoading(false);
@@ -128,7 +142,7 @@ export default function LeagueTablePage() {
         ::-webkit-scrollbar-thumb { background: var(--c-border-strong); border-radius: 2px; }
       `}</style>
 
-      <NavBar links={navLinks} activeLabel="Stats" right={<ThemeToggle size="sm" />} />
+      <NavBar links={navLinks} activeLabel="League Table" right={<ThemeToggle size="sm" />} />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "20px 16px" : "28px 20px" }}>
         <div style={{ marginBottom: 24 }}>
@@ -146,25 +160,30 @@ export default function LeagueTablePage() {
         ) : (
           <div className="table-scroll" style={{ background: "var(--c-bg)", borderRadius: 14, border: "1px solid var(--c-border)", overflow: "hidden" }}>
             {/* Header */}
-            <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 60px 60px 60px 60px 72px 72px", gap: 0, padding: "10px 20px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-elevated)" }}>
-              {["#", "Team", "P", "W", "D", "L", gwName ?? "GW Pts", "Total"].map((h, i) => (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "28px 1fr 36px 36px 36px 36px 60px" : "36px 1fr 52px 52px 52px 52px 100px 64px 64px", gap: 0, padding: "10px 16px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-elevated)" }}>
+              {(isMobile
+                ? ["#", "Team", "P", "W", "D", "L", "Total"]
+                : ["#", "Team", "P", "W", "D", "L", "Form", gwName ?? "GW", "Total"]
+              ).map((h, i) => (
                 <div key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", textAlign: i > 1 ? "center" : "left" }}>{h}</div>
               ))}
             </div>
 
             {teams.map((team, idx) => {
               const isMe = team.user_id === myUserId;
+              const FORM_COLOR = { W: "#16A34A", D: "#A89880", L: "#DC2626" };
               return (
                 <div key={team.id} style={{
-                  display: "grid", gridTemplateColumns: "36px 1fr 60px 60px 60px 60px 72px 72px",
-                  gap: 0, padding: "13px 20px",
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "28px 1fr 36px 36px 36px 36px 60px" : "36px 1fr 52px 52px 52px 52px 100px 64px 64px",
+                  gap: 0, padding: "12px 16px",
                   borderBottom: "1px solid var(--c-border)",
                   background: isMe ? "rgba(255,90,31,0.05)" : "transparent",
                   transition: "background 0.15s",
                 }}>
                   {/* Rank */}
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: idx === 0 ? "#FF5A1F" : "#4A3E34", fontWeight: idx === 0 ? 700 : 400 }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: idx === 0 ? "#FF5A1F" : "var(--c-text-dim)", fontWeight: idx === 0 ? 700 : 400 }}>
                       {idx + 1}
                     </span>
                   </div>
@@ -192,16 +211,36 @@ export default function LeagueTablePage() {
                   {/* P W D L */}
                   {[team.played, team.won, team.drawn, team.lost].map((v, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: i === 1 ? "var(--c-success)" : i === 3 ? "#DC2626" : "var(--c-text-muted)" }}>{v}</span>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: i === 1 ? "#16A34A" : i === 3 ? "#DC2626" : "var(--c-text-muted)" }}>{v}</span>
                     </div>
                   ))}
 
-                  {/* GW Points */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 600, color: (team.gw_points ?? 0) > 0 ? "#FF5A1F" : "var(--c-text-dim)" }}>
-                      {(team.gw_points ?? 0).toFixed(1)}
-                    </span>
-                  </div>
+                  {/* Form — last 5 (desktop only) */}
+                  {!isMobile && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
+                      {team.form.length === 0
+                        ? <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)" }}>—</span>
+                        : team.form.map((r, i) => (
+                          <span key={i} style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 16, height: 16, borderRadius: 4,
+                            background: FORM_COLOR[r] + "22",
+                            color: FORM_COLOR[r],
+                            fontFamily: "'DM Mono', monospace", fontSize: 9, fontWeight: 700,
+                          }}>{r}</span>
+                        ))
+                      }
+                    </div>
+                  )}
+
+                  {/* GW Points (desktop only) */}
+                  {!isMobile && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 600, color: (team.gw_points ?? 0) > 0 ? "#FF5A1F" : "var(--c-text-dim)" }}>
+                        {(team.gw_points ?? 0).toFixed(1)}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Total Points */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -218,7 +257,7 @@ export default function LeagueTablePage() {
         {teams.length > 0 && (
           <div style={{ marginTop: 16, display: "flex", gap: 20 }}>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.06em" }}>
-              P = Played · W = Won · D = Drawn · L = Lost
+              P = Played · W = Won · D = Drawn · L = Lost · Form = last 5 results
             </div>
             {!gwName && (
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.06em" }}>

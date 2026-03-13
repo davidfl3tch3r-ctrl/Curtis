@@ -205,9 +205,8 @@ export default function LeagueHubPage() {
         { label: "Home", href: "/" },
         { label: "My Team", href: `/leagues/${activeLeague.id}/team` },
         { label: "Draft", href: `/leagues/${activeLeague.id}/draft` },
-        { label: "Scoring", href: `/leagues/${activeLeague.id}/scoring` },
-        { label: "Live", href: `/leagues/${activeLeague.id}/live` },
-        { label: "Stats", href: `/leagues/${activeLeague.id}/table` },
+        { label: "Match Day", href: `/leagues/${activeLeague.id}/live` },
+        { label: "League Table", href: `/leagues/${activeLeague.id}/table` },
         { label: "Waivers",  href: `/leagues/${activeLeague.id}/waivers` },
         { label: "Trades",   href: `/leagues/${activeLeague.id}/trades` },
         { label: "Chat",     href: `/leagues/${activeLeague.id}/chat` },
@@ -320,7 +319,8 @@ export default function LeagueHubPage() {
                   <div
                     key={l.id}
                     className={`league-card${activeLeague.id === l.id ? " active" : ""}`}
-                    onClick={() => { setActiveLeague(l); setTab("overview"); }}
+                    onClick={() => router.push(`/leagues/${l.id}/live`)}
+                    style={{ cursor: "pointer" }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div>
