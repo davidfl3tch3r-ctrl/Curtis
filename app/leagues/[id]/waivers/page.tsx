@@ -126,7 +126,7 @@ export default function WaiversPage() {
 
     const [{ data: league }, { data: gw }] = await Promise.all([
       supabase.from("leagues").select("name").eq("id", leagueId).single(),
-      supabase.from("gameweeks").select("id, name").in("status", ["live", "upcoming"]).order("number").limit(1).maybeSingle(),
+      supabase.from("gameweeks").select("id, name").in("status", ["live", "upcoming"]).order("number", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     if (league) setLeagueName(league.name);
@@ -146,13 +146,14 @@ export default function WaiversPage() {
       : { data: [] };
     const ownedIds = new Set((owned ?? []).map(r => r.player_id));
 
-    // Available players — fetch more (200) so sorting works well
+    // Available players — no limit so all positions are represented.
+    // (limit(200) was hiding defenders since they rank lower by season_points)
     const { data: players } = await supabase
       .from("players")
       .select("id, name, club, position, season_points, gw_points")
       .eq("is_available", true)
       .order("season_points", { ascending: false })
-      .limit(200);
+      .limit(700);
 
     const availablePlayers = (players ?? []).filter(p => !ownedIds.has(p.id));
 
@@ -347,12 +348,16 @@ export default function WaiversPage() {
 
             {/* ── Position filters ── */}
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-              {["ALL", "GK", "DEF", "MID", "FWD"].map(pos => (
-                <button key={pos} className={`filter-btn${posFilter === pos ? " active" : ""}`} onClick={() => setPosFilter(pos)}>{pos}</button>
-              ))}
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", alignSelf: "center", letterSpacing: "0.04em" }}>
-                {filtered.length} player{filtered.length !== 1 ? "s" : ""}
-              </span>
+              {["ALL", "GK", "DEF", "MID", "FWD"].map(pos => {
+                const count = pos === "ALL"
+                  ? available.filter(p => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase())).length
+                  : available.filter(p => p.position === pos && (!search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))).length;
+                return (
+                  <button key={pos} className={`filter-btn${posFilter === pos ? " active" : ""}`} onClick={() => setPosFilter(pos)}>
+                    {pos} <span style={{ opacity: 0.7, fontSize: 9 }}>{count}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── Player list ── */}
