@@ -31,7 +31,7 @@ export function useLeagueNavLinks(leagueId: string) {
       : []),
     { label: "Match Day",     href: `/leagues/${leagueId}/live` },
     { label: "League Table",  href: `/leagues/${leagueId}/table` },
-    { label: "Waivers",       href: `/leagues/${leagueId}/waivers` },
+    { label: "Transfers",     href: `/leagues/${leagueId}/transfers` },
     { label: "Trades",        href: `/leagues/${leagueId}/trades` },
     { label: "Chat",          href: `/leagues/${leagueId}/chat` },
     { label: "Messages",      href: `/leagues/${leagueId}/messages` },

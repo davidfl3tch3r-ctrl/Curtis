@@ -78,7 +78,8 @@
       "Bash(grep -n \"navLinks\\\\|activeLabel\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/squad/page.tsx | head -10)",
       "Bash(sed -n '255,280p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/live/page.tsx && sed -n '200,225p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/trades/page.tsx && sed -n '65,80p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/waivers/page.tsx)",
       "Bash(grep -n \"useParams\\\\|const id\\\\b\\\\|const leagueId\\\\b\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/squad/page.tsx | head -5)",
-      "Bash(grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/join/\\\\[code\\\\]/page.tsx | head -3 && grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx | head -3)"
+      "Bash(grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/join/\\\\[code\\\\]/page.tsx | head -3 && grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx | head -3)",
+      "Bash(wc -l /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/team/page.tsx)"
     ]
   }
 }

@@ -1371,6 +1371,8 @@ function SectionHeader({
 function SectionTesting() {
   const [seeding, setSeeding] = useState(false);
   const [result, setResult] = useState<{ success?: boolean; message?: string; leagueId?: string; error?: string } | null>(null);
+  const [settling, setSettling] = useState(false);
+  const [settleResult, setSettleResult] = useState<{ success?: boolean; settled?: number; sold?: number; unsold?: number; error?: string } | null>(null);
 
   async function seedTestLeague() {
     if (!confirm("Create \"The Gaffer's League\" with 8 teams?")) return;
@@ -1384,6 +1386,21 @@ function SectionTesting() {
       setResult({ error: "Network error" });
     } finally {
       setSeeding(false);
+    }
+  }
+
+  async function settleTransfers() {
+    if (!confirm("Settle all expired transfer listings now?")) return;
+    setSettling(true);
+    setSettleResult(null);
+    try {
+      const res = await fetch("/api/transfers/settle", { method: "POST" });
+      const d = await res.json();
+      setSettleResult(d);
+    } catch {
+      setSettleResult({ error: "Network error" });
+    } finally {
+      setSettling(false);
     }
   }
 
@@ -1430,6 +1447,46 @@ function SectionTesting() {
                   → Open Draft Room
                 </a>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Settle transfers */}
+        <div style={{ background: "var(--c-bg-elevated)", border: "1.5px solid var(--c-border-strong)", borderRadius: 12, padding: "20px 22px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+            <span style={{ fontSize: 28 }}>⚖️</span>
+            <div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, color: "var(--c-text)", marginBottom: 4 }}>Settle Transfers</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.5 }}>
+                Processes all expired transfer listings: completes sales, transfers players, credits sellers, and refunds unsuccessful bids.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={settleTransfers}
+            disabled={settling}
+            style={{
+              padding: "10px 20px", borderRadius: 9,
+              background: settling ? "var(--c-skeleton)" : "#FF5A1F",
+              color: "white", border: "none",
+              fontFamily: "'DM Mono', monospace", fontSize: 11,
+              letterSpacing: "0.08em", cursor: settling ? "not-allowed" : "pointer",
+              opacity: settling ? 0.6 : 1,
+            }}
+          >
+            {settling ? "Settling…" : "⚖️ Settle Transfers"}
+          </button>
+          {settleResult && (
+            <div style={{
+              marginTop: 14, padding: "10px 14px", borderRadius: 8,
+              background: settleResult.error ? "rgba(220,38,38,0.06)" : "rgba(22,163,74,0.06)",
+              border: `1px solid ${settleResult.error ? "rgba(220,38,38,0.2)" : "rgba(22,163,74,0.2)"}`,
+            }}>
+              <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: settleResult.error ? "#DC2626" : "#16A34A", letterSpacing: "0.04em" }}>
+                {settleResult.error
+                  ? settleResult.error
+                  : `Settled ${settleResult.settled} listing${settleResult.settled !== 1 ? "s" : ""} — ${settleResult.sold} sold, ${settleResult.unsold} unsold`}
+              </p>
             </div>
           )}
         </div>

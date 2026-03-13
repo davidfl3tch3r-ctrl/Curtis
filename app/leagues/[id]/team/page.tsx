@@ -7,6 +7,7 @@ import { NavBar } from "@/components/NavBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
+import { isWindowOpen, nextCloseTime } from "@/lib/transfer-window";
 
 // ─── Formations ───────────────────────────────────────────────────────────────
 
@@ -307,6 +308,44 @@ export default function TeamPage() {
   const [actionPlayer, setActionPlayer] = useState<SquadPlayer | null>(null);
 
   const navLinks = useLeagueNavLinks(leagueId);
+
+  // Transfer window + listing state
+  const [windowOpen, setWindowOpen] = useState(false);
+  const [listTarget, setListTarget] = useState<{ id: string; name: string; position: string; season_points: number } | null>(null);
+  const [listMinBid, setListMinBid] = useState(5);
+  const [listBuyNow, setListBuyNow] = useState("");
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState("");
+
+  useEffect(() => {
+    setWindowOpen(isWindowOpen());
+    const t = setInterval(() => setWindowOpen(isWindowOpen()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function listPlayer() {
+    if (!listTarget || !myTeamId) return;
+    setListError(""); setListLoading(true);
+    const buyNowVal = listBuyNow ? parseInt(listBuyNow) : null;
+    if (buyNowVal && buyNowVal <= listMinBid) {
+      setListError("Buy It Now must be higher than minimum bid");
+      setListLoading(false);
+      return;
+    }
+    const closesAt = nextCloseTime().toISOString();
+    const supabase = createClient();
+    const { error } = await supabase.from("transfer_listings").insert({
+      league_id: leagueId,
+      seller_team_id: myTeamId,
+      player_id: listTarget.id,
+      min_bid: listMinBid,
+      buy_it_now_price: buyNowVal,
+      closes_at: closesAt,
+    });
+    setListLoading(false);
+    if (error) { setListError(error.message); return; }
+    setListTarget(null);
+  }
 
   // Load squad
   useEffect(() => {
@@ -677,8 +716,8 @@ export default function TeamPage() {
         {starters.length > 0 && viewMode === "list" && (
           <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border-strong)", overflow: "hidden" }}>
             {/* List view header */}
-            <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "8px 16px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg)" }}>
-              {["", "Player", "Pos", "Club", "GW Pts"].map((h, i) => (
+            <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px 56px", gap: 0, padding: "8px 16px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg)" }}>
+              {["", "Player", "Pos", "Club", "GW Pts", ""].map((h, i) => (
                 <div key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", textAlign: i > 1 ? "center" : "left" }}>{h}</div>
               ))}
             </div>
@@ -688,7 +727,7 @@ export default function TeamPage() {
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>Starting XI</span>
               </div>
               {startersWithCaptain.map(p => (
-                <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "10px 16px", borderBottom: "1px solid var(--c-border)", alignItems: "center" }}>
+                <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px 56px", gap: 0, padding: "10px 16px", borderBottom: "1px solid var(--c-border)", alignItems: "center" }}>
                   <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                     {p.isCaptain && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, background: "#FF5A1F", color: "white", borderRadius: 3, padding: "1px 4px", lineHeight: 1.4 }}>C</span>}
                     {p.isVC && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, background: "#9333EA", color: "white", borderRadius: 3, padding: "1px 4px", lineHeight: 1.4 }}>V</span>}
@@ -702,6 +741,16 @@ export default function TeamPage() {
                     {(p.gwPoints * (p.isCaptain ? 2 : 1)).toFixed(0)}
                     {p.isCaptain && <span style={{ fontSize: 9, color: "#FF5A1F" }}>×2</span>}
                   </span>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    {windowOpen && (
+                      <button
+                        onClick={() => { setListTarget({ id: p.playerId, name: p.name, position: p.position, season_points: p.gwPoints }); setListMinBid(5); setListBuyNow(""); setListError(""); }}
+                        style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.06em", padding: "3px 9px", borderRadius: 5, border: "1px solid rgba(255,90,31,0.35)", background: "transparent", color: "#FF5A1F", cursor: "pointer" }}
+                      >
+                        List
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -712,7 +761,7 @@ export default function TeamPage() {
                   <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>Bench</span>
                 </div>
                 {bench.map((p, i) => (
-                  <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "10px 16px", borderBottom: i < bench.length - 1 ? "1px solid var(--c-border)" : "none", alignItems: "center", opacity: 0.6 }}>
+                  <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px 56px", gap: 0, padding: "10px 16px", borderBottom: i < bench.length - 1 ? "1px solid var(--c-border)" : "none", alignItems: "center", opacity: 0.6 }}>
                     <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "#FF5A1F" }}>Sub {i + 1}</span>
                     <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                     <div style={{ display: "flex", justifyContent: "center" }}>
@@ -720,6 +769,16 @@ export default function TeamPage() {
                     </div>
                     <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", textAlign: "center" }}>{p.club}</span>
                     <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "var(--c-text-dim)", textAlign: "center" }}>{p.gwPoints.toFixed(0)}</span>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      {windowOpen && (
+                        <button
+                          onClick={() => { setListTarget({ id: p.playerId, name: p.name, position: p.position, season_points: p.gwPoints }); setListMinBid(5); setListBuyNow(""); setListError(""); }}
+                          style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.06em", padding: "3px 9px", borderRadius: 5, border: "1px solid rgba(255,90,31,0.35)", background: "transparent", color: "#FF5A1F", cursor: "pointer" }}
+                        >
+                          List
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -985,6 +1044,68 @@ export default function TeamPage() {
           </div>
         )}
       </div>
+
+      {/* LIST PLAYER MODAL */}
+      {listTarget && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setListTarget(null); }}
+        >
+          <div style={{ background: "var(--c-bg-elevated)", borderRadius: 16, padding: 28, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800, marginBottom: 6 }}>List for Sale</h2>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", marginBottom: 20 }}>
+              <strong>{listTarget.name}</strong> · {listTarget.position}
+            </p>
+
+            <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-muted)", display: "block", marginBottom: 6 }}>
+              Minimum Bid (credits)
+            </label>
+            <input
+              type="number"
+              value={listMinBid}
+              min={1}
+              onChange={e => setListMinBid(Number(e.target.value))}
+              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid var(--c-input-border)", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 16, outline: "none", background: "var(--c-input)", color: "var(--c-text)", marginBottom: 16 }}
+            />
+
+            <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-muted)", display: "block", marginBottom: 6 }}>
+              Buy It Now Price (optional)
+            </label>
+            <input
+              type="number"
+              value={listBuyNow}
+              placeholder="Leave blank for auction only"
+              onChange={e => setListBuyNow(e.target.value)}
+              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid var(--c-input-border)", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 16, outline: "none", background: "var(--c-input)", color: "var(--c-text)", marginBottom: 16 }}
+            />
+
+            <div style={{ background: "var(--c-bg)", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", marginBottom: 4 }}>CLOSES AT</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text)" }}>
+                {nextCloseTime().toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} UTC
+              </div>
+            </div>
+
+            {listError && <p style={{ color: "#EF4444", fontSize: 12, fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>{listError}</p>}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setListTarget(null)}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: "1.5px solid var(--c-border-strong)", background: "var(--c-bg-elevated)", cursor: "pointer", fontFamily: "'DM Mono', monospace", fontSize: 12 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={listPlayer}
+                disabled={listLoading || listMinBid < 1}
+                style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: "#FF5A1F", color: "white", fontFamily: "'DM Mono', monospace", fontSize: 12, letterSpacing: "0.08em", cursor: "pointer", opacity: listLoading ? 0.5 : 1, minHeight: 44 }}
+              >
+                {listLoading ? "Listing…" : "List Player"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
