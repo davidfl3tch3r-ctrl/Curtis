@@ -224,6 +224,11 @@ html.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
     padding: 14px 16px;
   }
 
+  /* Prevent iOS auto-zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
   /* Shared buttons: ensure tap target */
   .new-btn {
     min-height: 44px;

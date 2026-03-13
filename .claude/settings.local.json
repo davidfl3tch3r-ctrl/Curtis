@@ -69,7 +69,16 @@
       "Bash(grep -l \"var\\(--c-bg\\)\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/chat/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/messages/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/join/[code]/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx 2>&1)",
       "Bash(wc -l /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/mock-draft/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/live/page.tsx /Users/davidfletcher/Documents/curtis-complete/app/leagues/[id]/waivers/page.tsx)",
       "Bash(grep -n \"label.*Chat.*href.*chat\\\\|Chat.*href.*chat\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/live/page.tsx | head -3)",
-      "Bash(grep -n \"label.*Home\\\\|label.*Draft\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/draft/page.tsx | head -6)"
+      "Bash(grep -n \"label.*Home\\\\|label.*Draft\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/draft/page.tsx | head -6)",
+      "Bash(grep -rn \"navLinks\\\\|NavBar\\\\|draft_status\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/scoring/page.tsx | head -10)",
+      "Bash(grep -n \"navLinks\\\\b\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/scoring/page.tsx | head -5 && grep -n \"Draft\\\\|draft\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/scoring/page.tsx | grep -i \"draft\" | head -10)",
+      "Bash(sed -n '188,200p' /Users/davidfletcher/Documents/curtis-complete/app/join/\\\\[code\\\\]/page.tsx && sed -n '78,90p' /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx)",
+      "Bash(grep -n \"navLinks\\\\b\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/draft/page.tsx)",
+      "Bash(grep -n \"navLinks\\\\|activeLabel\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/live/page.tsx | head -20)",
+      "Bash(grep -n \"navLinks\\\\|activeLabel\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/squad/page.tsx | head -10)",
+      "Bash(sed -n '255,280p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/live/page.tsx && sed -n '200,225p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/trades/page.tsx && sed -n '65,80p' /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/waivers/page.tsx)",
+      "Bash(grep -n \"useParams\\\\|const id\\\\b\\\\|const leagueId\\\\b\" /Users/davidfletcher/Documents/curtis-complete/app/leagues/\\\\[id\\\\]/squad/page.tsx | head -5)",
+      "Bash(grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/join/\\\\[code\\\\]/page.tsx | head -3 && grep -n \"^import.*Link\\\\|\\\\\"next/link\\\\\"\" /Users/davidfletcher/Documents/curtis-complete/app/admin/sync/page.tsx | head -3)"
     ]
   }
 }

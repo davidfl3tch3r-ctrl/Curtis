@@ -86,7 +86,10 @@ export default function LeagueHubPage() {
       const rawName = profile?.username
         ? profile.username
         : user.email!.split("@")[0].replace(/[._-]/g, " ");
-      const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const capitalized = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const displayName = capitalized.length > 16 && !capitalized.includes(" ")
+        ? capitalized.slice(0, 15) + "…"
+        : capitalized;
       setGreeting(displayName);
 
       // User's teams, with league data embedded

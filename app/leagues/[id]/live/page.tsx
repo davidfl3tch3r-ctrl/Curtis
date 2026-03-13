@@ -476,7 +476,7 @@ export default function LiveScoringPage() {
             </div>
 
             {/* ── Dual squad view ── */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 0 : 16, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 24 }}>
 
               {/* YOUR team */}
               <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border)", overflow: "hidden" }}>

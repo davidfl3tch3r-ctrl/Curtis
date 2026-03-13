@@ -69,13 +69,15 @@ export function NavBar({
     <>
       {/* ── TOP NAV ── */}
       <nav style={{
-        height: 58,
+        minHeight: 58,
         background: "var(--c-bg)",
         borderBottom: "1px solid var(--c-border-strong)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 clamp(16px, 4vw, 44px)",
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingLeft: "clamp(16px, 4vw, 44px)",
+        paddingRight: "clamp(16px, 4vw, 44px)",
         position: "sticky",
         top: 0,
         zIndex: 100,

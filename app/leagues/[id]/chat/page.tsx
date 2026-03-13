@@ -261,6 +261,7 @@ export default function LeagueChatPage() {
       {/* Input bar — fixed at bottom */}
       <div style={{
         padding: isMobile ? "12px 16px 16px" : "16px 32px 24px",
+        paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "24px",
         borderTop: "1.5px solid var(--c-border)",
         background: "var(--c-bg-elevated)",
         display: "flex",
