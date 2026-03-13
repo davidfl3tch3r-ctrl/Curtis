@@ -229,6 +229,8 @@ export function NavBar({
                     borderLeft: `3px solid ${activeLabel === item.label ? "#FF5A1F" : "transparent"}`,
                     background: activeLabel === item.label ? "var(--c-accent-dim)" : "transparent",
                     transition: "color 0.15s",
+                    cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   {item.label}

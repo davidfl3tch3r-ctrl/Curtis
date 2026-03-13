@@ -164,7 +164,7 @@ html.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  min-height: 56px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--c-bg-elevated);
   border-top: 1px solid var(--c-border-strong);

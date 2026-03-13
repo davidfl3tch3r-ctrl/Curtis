@@ -322,7 +322,7 @@ export default function LeagueHubPage() {
                   <div
                     key={l.id}
                     className={`league-card${activeLeague.id === l.id ? " active" : ""}`}
-                    onClick={() => router.push(`/leagues/${l.id}/live`)}
+                    onClick={() => isMobile ? router.push(`/leagues/${l.id}/live`) : setActiveLeague(l)}
                     style={{ cursor: "pointer" }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>

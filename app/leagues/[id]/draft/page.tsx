@@ -1011,7 +1011,7 @@ export default function DraftRoomPage() {
         gridTemplateColumns: isMobile ? undefined : "1fr 340px",
         flexDirection: isMobile ? "column" : undefined,
         overflow: "hidden",
-        paddingBottom: isMobile ? 56 : 0,
+        paddingBottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px))" : 0,
       }}>
 
         {/* LEFT — Draft Board + Player Browser */}

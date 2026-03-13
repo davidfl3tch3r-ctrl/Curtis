@@ -978,7 +978,7 @@ export default function MockDraftPage() {
       </div>
 
       {/* 3-column layout */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", paddingBottom: isMobile ? 56 : 0 }}>
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", paddingBottom: isMobile ? "calc(60px + env(safe-area-inset-bottom, 0px))" : 0 }}>
 
         {/* LEFT: Draft board */}
         <div style={{

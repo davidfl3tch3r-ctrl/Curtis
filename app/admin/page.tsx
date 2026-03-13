@@ -412,7 +412,7 @@ function SectionLeagues({ myRole }: { myRole: AdminRole }) {
         subtitle={`${leagues.length} leagues total`}
       />
       <div className="table-scroll" style={{ borderRadius: 10, border: "1px solid var(--c-border-strong)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse" }}>
           <thead>
             <tr>
               <Th>Name</Th>
@@ -585,7 +585,7 @@ function SectionUsers({ myRole }: { myRole: AdminRole }) {
         subtitle={`${users.length} registered users`}
       />
       <div className="table-scroll" style={{ borderRadius: 10, border: "1px solid var(--c-border-strong)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse" }}>
           <thead>
             <tr>
               <Th>User</Th>
