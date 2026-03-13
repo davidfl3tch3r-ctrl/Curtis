@@ -11,6 +11,7 @@ export function AvatarMenu() {
   const [initials, setInitials] = useState("?");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,9 +22,10 @@ export function AvatarMenu() {
       setEmail(user.email ?? "");
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username")
+        .select("username, role")
         .eq("id", user.id)
         .single();
+      if (profile?.role === "admin" || profile?.role === "moderator") setIsAdmin(true);
       const rawName = profile?.username
         ? profile.username
         : (user.email ?? "").split("@")[0].replace(/[._-]/g, " ");
@@ -133,6 +135,19 @@ export function AvatarMenu() {
               {item.label}
             </Link>
           ))}
+
+          {/* Admin Panel link (admin/moderator only) */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="avatar-menu-item"
+              style={{ color: "#FF5A1F", gap: 8 }}
+            >
+              <span style={{ fontSize: 14 }}>⚙️</span>
+              Admin Panel
+            </Link>
+          )}
 
           {/* Divider */}
           <div style={{ height: 1, background: "var(--c-border)", margin: "2px 0" }} />
