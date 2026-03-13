@@ -85,6 +85,33 @@ const SORT_OPTIONS: { value: SortKey; label: string; short: string }[] = [
   { value: "minutes",        label: "Minutes",       short: "Mins" },
 ];
 
+// ─── Feature 1: Form thresholds ───────────────────────────────────────────────
+
+const FORM_THRESHOLD: Record<string, number> = { GK: 5, DEF: 4, MID: 5, FWD: 5 };
+
+function formDotColor(pts: number | undefined, position: string): string {
+  if (pts === undefined || pts === null) return "var(--c-border-strong)";
+  if (pts > FORM_THRESHOLD[position]) return "#16A34A";
+  return "#F59E0B";
+}
+
+// ─── Feature 2: Fixture difficulty tiers ─────────────────────────────────────
+
+const HARD_CLUBS  = new Set(["MCI", "LIV", "ARS", "CHE", "AVL", "TOT"]);
+const MEDIUM_CLUBS = new Set(["NEW", "MUN", "WHU", "BRI", "BHA", "FUL", "BOU", "NFO"]);
+
+function fixtureDifficulty(opp: string): "hard" | "medium" | "easy" {
+  if (HARD_CLUBS.has(opp))   return "hard";
+  if (MEDIUM_CLUBS.has(opp)) return "medium";
+  return "easy";
+}
+
+const DIFF_STYLE: Record<string, { bg: string; color: string; border: string }> = {
+  hard:   { bg: "rgba(239,68,68,0.15)",  color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" },
+  medium: { bg: "rgba(245,158,11,0.15)", color: "#D97706", border: "1px solid rgba(245,158,11,0.3)" },
+  easy:   { bg: "rgba(22,163,74,0.15)",  color: "#16A34A", border: "1px solid rgba(22,163,74,0.3)" },
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function WaiversPage() {
@@ -115,6 +142,20 @@ export default function WaiversPage() {
   const [bidError, setBidError] = useState("");
   const [bidLoading, setBidLoading] = useState(false);
 
+  // Feature 1: Form map (player_id → last 3 GW points, most recent first)
+  const [formMap, setFormMap] = useState<Record<string, number[]>>({});
+
+  // Feature 2: Fixture map (club abbreviation → next fixture)
+  const [fixtureMap, setFixtureMap] = useState<Record<string, { opp: string; home: boolean }>>({});
+
+  // Feature 3: Compare modal
+  const [compareTarget, setCompareTarget] = useState<Player | null>(null);
+  const [compareOpp, setCompareOpp] = useState<SquadPlayer | null>(null);
+  const [squadStatMap, setSquadStatMap] = useState<Record<string, AggStats>>({});
+
+  // Feature 4: Bid count map (player_id → pending bid count)
+  const [bidCountMap, setBidCountMap] = useState<Record<string, number>>({});
+
   useEffect(() => { load(); }, [leagueId]);
 
   async function load() {
@@ -131,6 +172,7 @@ export default function WaiversPage() {
 
     if (league) setLeagueName(league.name);
     if (gw) { setGameweekId(gw.id); setGameweekName(gw.name); }
+    const gwId = gw?.id ?? null;
 
     const { data: myTeamRow, error: teamErr } = await supabase
       .from("teams").select("*").eq("league_id", leagueId).eq("user_id", user.id).maybeSingle();
@@ -146,8 +188,7 @@ export default function WaiversPage() {
       : { data: [] };
     const ownedIds = new Set((owned ?? []).map(r => r.player_id));
 
-    // Available players — no limit so all positions are represented.
-    // (limit(200) was hiding defenders since they rank lower by season_points)
+    // Available players
     const { data: players } = await supabase
       .from("players")
       .select("id, name, club, position, season_points, gw_points")
@@ -158,6 +199,7 @@ export default function WaiversPage() {
     const availablePlayers = (players ?? []).filter(p => !ownedIds.has(p.id));
 
     // Season stats aggregated from player_stats
+    let builtAvailable: Player[] = [];
     if (availablePlayers.length) {
       const playerIds = availablePlayers.map(p => p.id);
       const { data: statsRows } = await supabase
@@ -179,22 +221,98 @@ export default function WaiversPage() {
         };
       }
 
-      setAvailable(availablePlayers.map(p => ({
+      builtAvailable = availablePlayers.map(p => ({
         ...p,
         position: normalisePos(p.position),
         stats: statMap[p.id] ?? { ...ZERO_STATS },
-      })));
-    } else {
-      setAvailable([]);
+      }));
+
+      // ── Feature 1: Form map ────────────────────────────────────────────────
+      const { data: formRows } = await supabase
+        .from("player_stats")
+        .select("player_id, gw_points, gameweek_id, gameweek:gameweeks(number)")
+        .in("player_id", playerIds)
+        .order("gameweek_id", { ascending: false });
+
+      const newFormMap: Record<string, number[]> = {};
+      for (const row of formRows ?? []) {
+        const existing = newFormMap[row.player_id] ?? [];
+        if (existing.length < 3) {
+          newFormMap[row.player_id] = [...existing, row.gw_points ?? 0];
+        }
+      }
+      setFormMap(newFormMap);
+
+      // ── Feature 4: Bid count map ───────────────────────────────────────────
+      if (gwId) {
+        const { data: bidRows } = await supabase
+          .from("waiver_bids")
+          .select("player_id")
+          .eq("status", "pending")
+          .eq("gameweek_id", gwId);
+
+        const newBidCountMap: Record<string, number> = {};
+        for (const row of bidRows ?? []) {
+          newBidCountMap[row.player_id] = (newBidCountMap[row.player_id] ?? 0) + 1;
+        }
+        setBidCountMap(newBidCountMap);
+      }
     }
 
+    setAvailable(builtAvailable);
+
+    // ── Feature 2: Fixture map ─────────────────────────────────────────────
+    const { data: fixtureRows } = await supabase
+      .from("fixtures")
+      .select("id, home_club, away_club, gameweek_id, gameweek:gameweeks(number, status)")
+      .in("status", ["scheduled", "upcoming"])
+      .order("gameweek_id", { ascending: true })
+      .limit(200);
+
+    const newFixtureMap: Record<string, { opp: string; home: boolean }> = {};
+    for (const fx of fixtureRows ?? []) {
+      if (!newFixtureMap[fx.home_club]) {
+        newFixtureMap[fx.home_club] = { opp: fx.away_club, home: true };
+      }
+      if (!newFixtureMap[fx.away_club]) {
+        newFixtureMap[fx.away_club] = { opp: fx.home_club, home: false };
+      }
+    }
+    setFixtureMap(newFixtureMap);
+
     // My squad
+    let squadRows: SquadPlayer[] = [];
     if (myTeamRow) {
       const { data: squad } = await supabase
         .from("squad_players")
         .select("id, player_id, player:players(id, name, club, position, season_points, gw_points)")
         .eq("team_id", myTeamRow.id);
-      setMySquad((squad ?? []) as unknown as SquadPlayer[]);
+      squadRows = (squad ?? []) as unknown as SquadPlayer[];
+      setMySquad(squadRows);
+
+      // ── Feature 3: Squad stat map ──────────────────────────────────────────
+      const mySquadPlayerIds = squadRows.map(sp => sp.player_id);
+      if (mySquadPlayerIds.length) {
+        const { data: squadStatsRows } = await supabase
+          .from("player_stats")
+          .select("player_id, goals, assists, goals_conceded, minutes_played")
+          .in("player_id", mySquadPlayerIds);
+
+        const newSquadStatMap: Record<string, AggStats> = {};
+        for (const row of squadStatsRows ?? []) {
+          const s = newSquadStatMap[row.player_id] ?? { ...ZERO_STATS };
+          newSquadStatMap[row.player_id] = {
+            goals:         s.goals       + (row.goals ?? 0),
+            assists:       s.assists     + (row.assists ?? 0),
+            cleanSheets:   s.cleanSheets + (row.goals_conceded === 0 ? 1 : 0),
+            saves:         s.saves,
+            tackles:       s.tackles,
+            interceptions: s.interceptions,
+            minutes:       s.minutes     + (row.minutes_played ?? 0),
+          };
+        }
+        setSquadStatMap(newSquadStatMap);
+      }
     }
 
     // My bids
@@ -231,6 +349,19 @@ export default function WaiversPage() {
     load();
   }
 
+  // ── Feature 3: Open compare modal ─────────────────────────────────────────
+  function openCompare(p: Player) {
+    // Find weakest squad player at same position, else overall weakest
+    const samePos = mySquad.filter(sp => normalisePos(sp.player?.position ?? "") === p.position);
+    const pool = samePos.length ? samePos : mySquad;
+    const weakest = pool.reduce<SquadPlayer | null>((min, sp) => {
+      if (!min) return sp;
+      return (sp.player?.season_points ?? 0) < (min.player?.season_points ?? 0) ? sp : min;
+    }, null);
+    setCompareTarget(p);
+    setCompareOpp(weakest);
+  }
+
   // ── Filtered + sorted list ─────────────────────────────────────────────────
   const filtered = available
     .filter(p => posFilter === "ALL" || p.position === posFilter)
@@ -254,6 +385,11 @@ export default function WaiversPage() {
     </span>
   );
 
+  // ── Compare modal squad stat helper ───────────────────────────────────────
+  function squadPlayerStats(sp: SquadPlayer): AggStats {
+    return squadStatMap[sp.player_id] ?? { ...ZERO_STATS };
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>
       <style>{`
@@ -264,9 +400,12 @@ export default function WaiversPage() {
         .player-row:hover { border-color: #FF5A1F; box-shadow: 0 2px 12px rgba(255,90,31,0.08); }
         .bid-btn { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 6px 14px; border-radius: 7px; border: 1.5px solid #FF5A1F; background: var(--c-bg-elevated); color: #FF5A1F; cursor: pointer; white-space: nowrap; transition: all 0.15s; min-height: 44px; }
         .bid-btn:hover { background: #FF5A1F; color: white; }
+        .compare-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.06em; padding: 6px 10px; border-radius: 7px; border: 1.5px solid var(--c-border-strong); background: var(--c-bg-elevated); color: var(--c-text-muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; min-height: 44px; }
+        .compare-btn:hover { border-color: #FF5A1F; color: #FF5A1F; }
         .pos-badge { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; color: white; flex-shrink: 0; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         .modal { background: var(--c-bg-elevated); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+        .compare-modal { background: var(--c-bg-elevated); border-radius: 16px; padding: 28px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
         .input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--c-input-border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; background: var(--c-input); color: var(--c-text); }
         .input:focus { border-color: #FF5A1F; }
         .primary-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #FF5A1F; color: white; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.08em; cursor: pointer; transition: opacity 0.15s; min-height: 44px; }
@@ -369,6 +508,10 @@ export default function WaiversPage() {
               )}
               {filtered.map(p => {
                 const stats = topStats(p);
+                const formPts = formMap[p.id] ?? [];
+                const fixture = fixtureMap[p.club];
+                const bidCount = bidCountMap[p.id] ?? 0;
+
                 return (
                   <div key={p.id} className="player-row">
                     {/* Position badge */}
@@ -385,13 +528,46 @@ export default function WaiversPage() {
 
                     {/* Name + club + stats */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {p.name}
+                      {/* Name row with form dots */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.name}
+                        </span>
+                        {/* Feature 1: Last 3 GW form dots */}
+                        <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+                          {[0, 1, 2].map(i => (
+                            <div
+                              key={i}
+                              title={formPts[i] !== undefined ? `GW-${i + 1}: ${formPts[i]} pts` : "No data"}
+                              style={{
+                                width: 8, height: 8, borderRadius: 2,
+                                background: formDotColor(formPts[i], p.position),
+                                flexShrink: 0,
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
+
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-dim)", letterSpacing: "0.04em" }}>
                           {p.club}
                         </span>
+                        {/* Feature 2: Fixture difficulty pill */}
+                        {fixture && (() => {
+                          const diff = fixtureDifficulty(fixture.opp);
+                          const ds = DIFF_STYLE[diff];
+                          return (
+                            <span style={{
+                              fontSize: 9, padding: "2px 6px", borderRadius: 4,
+                              fontFamily: "'DM Mono', monospace",
+                              background: ds.bg, color: ds.color, border: ds.border,
+                              whiteSpace: "nowrap",
+                            }}>
+                              {fixture.home ? "h" : "a"} {fixture.opp}
+                            </span>
+                          );
+                        })()}
                         {stats.map(s => (
                           <span key={s.label} className="stat-chip">
                             <b>{s.value}</b> {s.label}
@@ -410,9 +586,27 @@ export default function WaiversPage() {
                       </div>
                     </div>
 
-                    <button className="bid-btn" onClick={() => { setBidTarget(p); setBidAmount(0); setDropPlayerId(""); setBidError(""); }}>
-                      Bid
-                    </button>
+                    {/* Action buttons */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        {/* Feature 3: Compare button */}
+                        <button className="compare-btn" onClick={() => openCompare(p)}>
+                          Compare
+                        </button>
+                        <button className="bid-btn" onClick={() => { setBidTarget(p); setBidAmount(0); setDropPlayerId(""); setBidError(""); }}>
+                          Bid
+                        </button>
+                      </div>
+                      {/* Feature 4: Bid count badge */}
+                      {bidCount > 0 && (
+                        <span style={{
+                          fontFamily: "'DM Mono', monospace", fontSize: 9,
+                          color: "#D97706", letterSpacing: "0.04em",
+                        }}>
+                          {bidCount} bid{bidCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -485,6 +679,178 @@ export default function WaiversPage() {
               </button>
               <button onClick={placeBid} disabled={bidLoading || bidAmount > myCredits} className="primary-btn" style={{ flex: 2 }}>
                 {bidLoading ? "Placing…" : `Bid ${bidAmount} Credit${bidAmount !== 1 ? "s" : ""}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 3: Compare Modal */}
+      {compareTarget && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setCompareTarget(null); setCompareOpp(null); } }}>
+          <div className="compare-modal">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 800 }}>Compare</h2>
+              <button
+                onClick={() => { setCompareTarget(null); setCompareOpp(null); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-muted)", fontSize: 20, lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              {/* Left: Waiver player */}
+              {(() => {
+                const formPts = formMap[compareTarget.id] ?? [];
+                return (
+                  <div style={{ background: "var(--c-bg)", borderRadius: 12, padding: 16, border: "1.5px solid #FF5A1F" }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "#FF5A1F" }}>Waiver</span>
+                    </div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-text)", marginBottom: 4 }}>
+                      {compareTarget.name}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{compareTarget.club}</span>
+                      <span style={{
+                        fontFamily: "'DM Mono', monospace", fontSize: 9, fontWeight: 700,
+                        padding: "2px 6px", borderRadius: 4,
+                        background: POS_BG[compareTarget.position], color: POS_COLOR[compareTarget.position],
+                      }}>
+                        {compareTarget.position}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, color: "var(--c-text)", lineHeight: 1, marginBottom: 2 }}>
+                      {compareTarget.season_points}
+                    </div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-muted)", letterSpacing: "0.06em", marginBottom: 14 }}>
+                      SEASON PTS
+                    </div>
+                    {/* Last 3 GW */}
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-muted)", letterSpacing: "0.06em", marginBottom: 6 }}>LAST 3 GW</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[0, 1, 2].map(i => (
+                          <div key={i} style={{ textAlign: "center" }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: 6,
+                              background: formDotColor(formPts[i], compareTarget.position) + "22",
+                              border: `1.5px solid ${formDotColor(formPts[i], compareTarget.position)}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 700,
+                              color: formDotColor(formPts[i], compareTarget.position),
+                            }}>
+                              {formPts[i] !== undefined ? formPts[i] : "–"}
+                            </div>
+                            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "var(--c-text-muted)", marginTop: 2 }}>
+                              GW-{i + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Stats */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Goals</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{compareTarget.stats.goals}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Assists</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{compareTarget.stats.assists}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Clean Sheets</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{compareTarget.stats.cleanSheets}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Right: Squad player */}
+              {compareOpp ? (() => {
+                const pos = normalisePos(compareOpp.player?.position ?? "");
+                const spStats = squadPlayerStats(compareOpp);
+                const spFormPts = formMap[compareOpp.player_id] ?? [];
+                return (
+                  <div style={{ background: "var(--c-bg)", borderRadius: 12, padding: 16, border: "1.5px solid var(--c-border-strong)" }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-muted)" }}>Your Squad</span>
+                    </div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 15, color: "var(--c-text)", marginBottom: 4 }}>
+                      {compareOpp.player?.name}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)" }}>{compareOpp.player?.club}</span>
+                      <span style={{
+                        fontFamily: "'DM Mono', monospace", fontSize: 9, fontWeight: 700,
+                        padding: "2px 6px", borderRadius: 4,
+                        background: POS_BG[pos], color: POS_COLOR[pos],
+                      }}>
+                        {pos}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, color: "var(--c-text)", lineHeight: 1, marginBottom: 2 }}>
+                      {compareOpp.player?.season_points ?? 0}
+                    </div>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-muted)", letterSpacing: "0.06em", marginBottom: 14 }}>
+                      SEASON PTS
+                    </div>
+                    {/* Last 3 GW */}
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-muted)", letterSpacing: "0.06em", marginBottom: 6 }}>LAST 3 GW</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[0, 1, 2].map(i => (
+                          <div key={i} style={{ textAlign: "center" }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: 6,
+                              background: formDotColor(spFormPts[i], pos) + "22",
+                              border: `1.5px solid ${formDotColor(spFormPts[i], pos)}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 700,
+                              color: formDotColor(spFormPts[i], pos),
+                            }}>
+                              {spFormPts[i] !== undefined ? spFormPts[i] : "–"}
+                            </div>
+                            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "var(--c-text-muted)", marginTop: 2 }}>
+                              GW-{i + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Stats */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Goals</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{spStats.goals}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Assists</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{spStats.assists}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+                        <span style={{ color: "var(--c-text-muted)" }}>Clean Sheets</span>
+                        <span style={{ fontWeight: 700, color: "var(--c-text)" }}>{spStats.cleanSheets}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div style={{ background: "var(--c-bg)", borderRadius: 12, padding: 16, border: "1.5px solid var(--c-border-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ color: "var(--c-text-muted)", fontFamily: "'DM Mono', monospace", fontSize: 12 }}>No squad player to compare</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <button
+                onClick={() => { setCompareTarget(null); setCompareOpp(null); setBidTarget(compareTarget); setBidAmount(0); setDropPlayerId(""); setBidError(""); }}
+                className="primary-btn"
+              >
+                Bid on {compareTarget.name}
               </button>
             </div>
           </div>
