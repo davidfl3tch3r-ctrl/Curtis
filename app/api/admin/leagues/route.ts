@@ -7,9 +7,10 @@ export async function GET() {
 
   const sc = serviceClient();
 
+  // Note: `tier` column is not yet applied to the DB — omit to avoid a PostgREST error
   const { data: leagues, error } = await sc
     .from("leagues")
-    .select("id, name, privacy, tier, draft_status, created_at, season")
+    .select("id, name, privacy, draft_status, created_at, season")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -28,6 +29,7 @@ export async function GET() {
 
   const result = (leagues ?? []).map((l) => ({
     ...l,
+    tier: null,          // tier column not yet migrated to the DB
     team_count: countMap[l.id] ?? 0,
   }));
 

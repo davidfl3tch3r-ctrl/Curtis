@@ -36,5 +36,6 @@ export function useLeagueNavLinks(leagueId: string) {
     { label: "Trades",   href: `/leagues/${leagueId}/trades` },
     { label: "Chat",     href: `/leagues/${leagueId}/chat` },
     { label: "Messages", href: `/leagues/${leagueId}/messages` },
+    { label: "Settings", href: `/leagues/${leagueId}/settings` },
   ];
 }
