@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { NavBar } from "@/components/NavBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
 
 // ─── Formations ───────────────────────────────────────────────────────────────
 
@@ -274,24 +275,16 @@ export default function TeamPage() {
   const [captainId, setCaptainId] = useState<string | null>(null);
   const [vcId, setVcId] = useState<string | null>(null);
 
+  // View mode: pitch or list
+  const [viewMode, setViewMode] = useState<"pitch" | "list">("pitch");
+
   // Selection / swap state
   const [selectedArea, setSelectedArea] = useState<"starter" | "bench" | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [swapMode, setSwapMode] = useState(false);
   const [actionPlayer, setActionPlayer] = useState<SquadPlayer | null>(null);
 
-  const navLinks = [
-    { label: "Home",     href: "/" },
-    { label: "My Team",  href: `/leagues/${leagueId}/team` },
-    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
-    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
-    { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Stats",    href: `/leagues/${leagueId}/table` },
-    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
-    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
-    { label: "Messages", href: `/leagues/${leagueId}/messages` },
-  ];
+  const navLinks = useLeagueNavLinks(leagueId);
 
   // Load squad
   useEffect(() => {
@@ -615,8 +608,31 @@ export default function TeamPage() {
           </div>
         </div>
 
-        {/* Formation selector */}
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 20, paddingBottom: 4 }}>
+        {/* View toggle + Formation selector */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Pitch / List toggle */}
+          <div style={{ display: "flex", borderRadius: 8, border: "1.5px solid var(--c-border-strong)", overflow: "hidden", flexShrink: 0 }}>
+            {(["pitch", "list"] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                style={{
+                  padding: "7px 14px", border: "none", cursor: "pointer",
+                  fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.06em",
+                  background: viewMode === mode ? "#FF5A1F" : "transparent",
+                  color: viewMode === mode ? "white" : "var(--c-text-muted)",
+                  minHeight: 36,
+                }}
+              >
+                {mode === "pitch" ? "⬡ Pitch" : "≡ List"}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ width: 1, height: 28, background: "var(--c-border-strong)", flexShrink: 0 }} />
+
+          {/* Formation buttons — only relevant for pitch view */}
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 0, flex: 1 }}>
           {Object.keys(FORMATIONS).map(f => (
             <button
               key={f}
@@ -626,6 +642,7 @@ export default function TeamPage() {
               {f}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Empty squad state */}
@@ -638,7 +655,60 @@ export default function TeamPage() {
           </div>
         )}
 
-        {starters.length > 0 && (
+        {starters.length > 0 && viewMode === "list" && (
+          <div style={{ background: "var(--c-bg-elevated)", borderRadius: 14, border: "1.5px solid var(--c-border-strong)", overflow: "hidden" }}>
+            {/* List view header */}
+            <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "8px 16px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg)" }}>
+              {["", "Player", "Pos", "Club", "GW Pts"].map((h, i) => (
+                <div key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)", textAlign: i > 1 ? "center" : "left" }}>{h}</div>
+              ))}
+            </div>
+            {/* Starters */}
+            <div style={{ padding: "4px 0 0" }}>
+              <div style={{ padding: "4px 16px 2px", background: "var(--c-bg)" }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>Starting XI</span>
+              </div>
+              {startersWithCaptain.map(p => (
+                <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "10px 16px", borderBottom: "1px solid var(--c-border)", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                    {p.isCaptain && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, background: "#FF5A1F", color: "white", borderRadius: 3, padding: "1px 4px", lineHeight: 1.4 }}>C</span>}
+                    {p.isVC && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, background: "#9333EA", color: "white", borderRadius: 3, padding: "1px 4px", lineHeight: 1.4 }}>V</span>}
+                  </div>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <span style={{ background: POS_COLORS[p.position].bg, color: POS_COLORS[p.position].text, fontFamily: "'DM Mono', monospace", fontSize: 7, borderRadius: 3, padding: "1px 5px" }}>{p.position}</span>
+                  </div>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", textAlign: "center" }}>{p.club}</span>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: p.gwPoints > 0 ? "#FF5A1F" : "var(--c-text-dim)", textAlign: "center" }}>
+                    {(p.gwPoints * (p.isCaptain ? 2 : 1)).toFixed(0)}
+                    {p.isCaptain && <span style={{ fontSize: 9, color: "#FF5A1F" }}>×2</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* Bench */}
+            {bench.length > 0 && (
+              <div>
+                <div style={{ padding: "6px 16px 2px", background: "var(--c-bg)", borderTop: "1px solid var(--c-border-strong)" }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>Bench</span>
+                </div>
+                {bench.map((p, i) => (
+                  <div key={p.squadId} style={{ display: "grid", gridTemplateColumns: "32px 1fr 44px 44px 60px", gap: 0, padding: "10px 16px", borderBottom: i < bench.length - 1 ? "1px solid var(--c-border)" : "none", alignItems: "center", opacity: 0.6 }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, color: "#FF5A1F" }}>Sub {i + 1}</span>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <span style={{ background: POS_COLORS[p.position].bg, color: POS_COLORS[p.position].text, fontFamily: "'DM Mono', monospace", fontSize: 7, borderRadius: 3, padding: "1px 5px" }}>{p.position}</span>
+                    </div>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--c-text-muted)", textAlign: "center" }}>{p.club}</span>
+                    <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "var(--c-text-dim)", textAlign: "center" }}>{p.gwPoints.toFixed(0)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {starters.length > 0 && viewMode === "pitch" && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 260px", gap: 16 }}>
 
             {/* ── LEFT: Pitch + bench ── */}

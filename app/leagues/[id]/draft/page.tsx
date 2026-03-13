@@ -441,15 +441,55 @@ export default function DraftRoomPage() {
     setLeague(prev => prev ? { ...prev, draft_status: "complete" } : prev);
   }, [isDraftComplete, league, leagueId]);
 
-  // ── Bot auto-pick: first client to see it's a bot's turn fires the pick
+  // ── Bot auto-pick: position-aware, enforces minimum squad composition
   useEffect(() => {
     const currentTeamIsBot = currentTeam?.is_bot ?? false;
     if (!currentTeamIsBot || isDraftComplete || !league) return;
 
     const timeout = setTimeout(() => {
-      const pickedIds = new Set(picksRef.current.map(p => p.player_id));
-      const best = playersRef.current.find(p => !pickedIds.has(p.id));
-      if (!best || !currentTeam) return;
+      const allPicks = picksRef.current;
+      const allPlayers = playersRef.current;
+      const pickedIds = new Set(allPicks.map(p => p.player_id));
+      const available = allPlayers.filter(p => !pickedIds.has(p.id));
+      if (!available.length || !currentTeam) return;
+
+      // Count positions already held by this bot team
+      const teamPickIds = allPicks
+        .filter(p => p.team_id === currentTeam.id)
+        .map(p => p.player_id);
+      const posCounts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+      for (const pid of teamPickIds) {
+        const pl = allPlayers.find(p => p.id === pid);
+        if (pl) posCounts[pl.position] = (posCounts[pl.position] ?? 0) + 1;
+      }
+
+      const picked = teamPickIds.length;
+      const remaining = (league.squad_size ?? 15) - picked;
+
+      // Minimum requirements
+      const MINS: Record<string, number> = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+      // Positions still needed (below minimum)
+      const needed = (Object.keys(MINS) as Array<"GK"|"DEF"|"MID"|"FWD">)
+        .filter(pos => (posCounts[pos] ?? 0) < MINS[pos]);
+
+      // If we have exactly enough picks remaining to fill all minimums, must pick needed positions
+      const totalStillNeeded = needed.reduce((s, pos) => s + MINS[pos] - (posCounts[pos] ?? 0), 0);
+
+      let playerId: string | undefined;
+
+      if (needed.length > 0 && totalStillNeeded >= remaining) {
+        // Must fill a needed position — pick the best available in that position group
+        for (const pos of ["GK", "DEF", "MID", "FWD"] as const) {
+          if (!needed.includes(pos)) continue;
+          const best = available.find(p => p.position === pos);
+          if (best) { playerId = best.id; break; }
+        }
+      }
+
+      // Otherwise pick best available by rank (default ranking order from server)
+      if (!playerId) playerId = available[0]?.id;
+      if (!playerId) return;
 
       fetch("/api/draft/bot-pick", {
         method: "POST",
@@ -457,7 +497,7 @@ export default function DraftRoomPage() {
         body: JSON.stringify({
           leagueId,
           teamId:     currentTeam.id,
-          playerId:   best.id,
+          playerId,
           pickNumber: currentPickNum,
           round:      currentRound,
         }),
@@ -605,7 +645,9 @@ export default function DraftRoomPage() {
         <div style={{ width: "100%", maxWidth: 480, padding: "0 24px" }}>
           {/* Logo */}
           <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, letterSpacing: "0.08em" }}>CURTIS</div>
+            <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900, letterSpacing: "0.08em" }}>CURTIS</div>
+            </Link>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)", marginTop: 6 }}>Draft Room</div>
           </div>
 
@@ -867,7 +909,7 @@ export default function DraftRoomPage() {
           }}>
             <span style={{ color: "white", fontSize: 13 }}>◆</span>
           </div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 900, letterSpacing: "-0.02em" }}>CURTIS</div>
+          <Link href="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, fontWeight: 900, letterSpacing: "-0.02em", textDecoration: "none", color: "var(--c-text)" }}>CURTIS</Link>
         </div>
 
         {/* Nav */}

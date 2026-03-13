@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavBar } from "@/components/NavBar";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
 
 type Player = { id: string; name: string; club: string; position: string };
 type SquadPlayer = { player_id: string; player: Player };
@@ -204,18 +205,7 @@ export default function TradesPage() {
 
   const incoming = trades.filter((t) => t.receiving_team_id === myTeam?.id);
   const outgoing = trades.filter((t) => t.proposing_team_id === myTeam?.id);
-  const navLinks = [
-    { label: "Home",     href: "/" },
-    { label: "My Team",  href: `/leagues/${leagueId}/team` },
-    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
-    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
-    { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Stats",    href: `/leagues/${leagueId}/table` },
-    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
-    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
-    { label: "Messages", href: `/leagues/${leagueId}/messages` },
-  ];
+  const navLinks = useLeagueNavLinks(leagueId);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--c-bg)", color: "var(--c-text)", overflowX: "hidden" }}>

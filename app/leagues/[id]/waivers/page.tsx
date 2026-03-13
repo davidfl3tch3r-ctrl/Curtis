@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavBar } from "@/components/NavBar";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
 
 type Player = {
   id: string;
@@ -171,18 +172,7 @@ export default function WaiversPage() {
   }
 
   const filtered = posFilter === "ALL" ? available : available.filter((p) => p.position === posFilter);
-  const navLinks = [
-    { label: "Home",     href: "/" },
-    { label: "My Team",  href: `/leagues/${leagueId}/team` },
-    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
-    { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
-    { label: "Live",     href: `/leagues/${leagueId}/live` },
-    { label: "Stats",    href: `/leagues/${leagueId}/table` },
-    { label: "Waivers",  href: `/leagues/${leagueId}/waivers` },
-    { label: "Trades",   href: `/leagues/${leagueId}/trades` },
-    { label: "Chat",     href: `/leagues/${leagueId}/chat` },
-    { label: "Messages", href: `/leagues/${leagueId}/messages` },
-  ];
+  const navLinks = useLeagueNavLinks(leagueId);
 
   const creditsDisplay = (
     <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "var(--c-text-muted)", whiteSpace: "nowrap" }}>

@@ -23,6 +23,7 @@ const DRAFT_STATUS_COLOR: Record<string, string> = {
 
 type LeagueData = {
   id: string;
+  teamId: string;
   name: string;
   season: string;
   draftStatus: "pending" | "live" | "complete";
@@ -37,6 +38,15 @@ type LeagueData = {
   gwTopScorerName: string;
   gwTopScorerPts: number;
   gwLeagueAvg: number;
+};
+
+type SquadRow = {
+  playerId: string;
+  name: string;
+  club: string;
+  position: string;
+  gwPoints: number;
+  isStarting: boolean;
 };
 
 function generateHeadline(l: LeagueData): string {
@@ -56,6 +66,8 @@ export default function LeagueHubPage() {
   const [leagues, setLeagues] = useState<LeagueData[]>([]);
   const [activeLeague, setActiveLeague] = useState<LeagueData | null>(null);
   const [tab, setTab] = useState("overview");
+  const [squadPlayers, setSquadPlayers] = useState<SquadRow[]>([]);
+  const [squadLoading, setSquadLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -136,6 +148,7 @@ export default function LeagueHubPage() {
 
         return {
           id: league.id,
+          teamId: myTeam.id,
           name: league.name,
           season: league.season,
           draftStatus: league.draft_status,
@@ -160,6 +173,32 @@ export default function LeagueHubPage() {
 
     load();
   }, []);
+
+  // Fetch squad players when the squad tab is active for the selected league
+  useEffect(() => {
+    if (tab !== "squad" || !activeLeague?.teamId) return;
+    setSquadPlayers([]);
+    setSquadLoading(true);
+    const supabase = createClient();
+    supabase
+      .from("squad_players")
+      .select("player_id, is_starting, player:players(name, club, position, gw_points)")
+      .eq("team_id", activeLeague.teamId)
+      .then(({ data }) => {
+        type Raw = { player_id: string; is_starting: boolean; player: { name: string; club: string; position: string; gw_points: number } };
+        setSquadPlayers(
+          (data as unknown as Raw[] ?? []).map(r => ({
+            playerId: r.player_id,
+            name: r.player?.name ?? "",
+            club: r.player?.club ?? "",
+            position: r.player?.position ?? "",
+            gwPoints: r.player?.gw_points ?? 0,
+            isStarting: r.is_starting,
+          }))
+        );
+        setSquadLoading(false);
+      });
+  }, [tab, activeLeague?.teamId]);
 
   const navLinks = activeLeague
     ? [
@@ -422,17 +461,74 @@ export default function LeagueHubPage() {
 
               {tab === "squad" && (
                 <div style={{ background: "var(--c-bg-elevated)", borderRadius: 16, border: "1.5px solid var(--c-border-strong)", overflow: "hidden" }}>
-                  <div style={{ padding: "18px 20px 10px", borderBottom: "1px solid var(--c-border)", display: "flex", justifyContent: "space-between" }}>
-                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-muted)" }}>Your Squad</p>
-                  </div>
-                  <div style={{ padding: isMobile ? "28px 16px" : "48px 24px", textAlign: "center" }}>
-                    <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "var(--c-text)", marginBottom: 8 }}>
-                      No squad yet.
+                  <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--c-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-muted)" }}>
+                      Your Squad · {squadPlayers.filter(p => p.isStarting).length} starters
                     </p>
-                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.6 }}>
-                      Your drafted players will appear here after the draft is complete.
+                    <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.06em" }}>
+                      {squadPlayers.length} players
                     </p>
                   </div>
+                  {squadLoading ? (
+                    <div style={{ padding: "32px 20px", textAlign: "center", fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--c-text-dim)", letterSpacing: "0.08em" }}>Loading…</div>
+                  ) : squadPlayers.length === 0 ? (
+                    <div style={{ padding: isMobile ? "28px 16px" : "40px 24px", textAlign: "center" }}>
+                      <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "var(--c-text)", marginBottom: 8 }}>No squad yet.</p>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.6 }}>
+                        {activeLeague.draftStatus === "pending" ? "Complete the draft to build your squad." : "Squad data will appear here once players are assigned."}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Starters */}
+                      {(["GK","DEF","MID","FWD"] as const).map(pos => {
+                        const group = squadPlayers.filter(p => p.isStarting && p.position === pos);
+                        if (!group.length) return null;
+                        const posColors: Record<string, { bg: string; text: string }> = {
+                          GK: { bg: "#78350f", text: "#FEF9C3" }, DEF: { bg: "#1e3a8a", text: "#DBEAFE" },
+                          MID: { bg: "#4c1d95", text: "#EDE9FE" }, FWD: { bg: "#7c2d12", text: "#FFF1EC" },
+                        };
+                        return (
+                          <div key={pos}>
+                            <div style={{ padding: "6px 20px", background: "var(--c-bg)", borderBottom: "1px solid var(--c-border)" }}>
+                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>{pos}</span>
+                            </div>
+                            {group.map((p, i) => (
+                              <div key={p.playerId} style={{
+                                display: "flex", alignItems: "center", gap: 10, padding: "9px 20px",
+                                borderBottom: i < group.length - 1 ? "1px solid var(--c-border)" : "none",
+                              }}>
+                                <div style={{ width: 5, height: 5, borderRadius: "50%", background: posColors[pos].bg, flexShrink: 0 }} />
+                                <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.04em" }}>{p.club}</span>
+                                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: p.gwPoints > 0 ? "#FF5A1F" : "var(--c-text-dim)", minWidth: 28, textAlign: "right" }}>{p.gwPoints.toFixed(0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {/* Bench */}
+                      {squadPlayers.some(p => !p.isStarting) && (
+                        <div>
+                          <div style={{ padding: "6px 20px", background: "var(--c-bg)", borderBottom: "1px solid var(--c-border)", borderTop: "1px solid var(--c-border-strong)" }}>
+                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-dim)" }}>Bench</span>
+                          </div>
+                          {squadPlayers.filter(p => !p.isStarting).map((p, i, arr) => (
+                            <div key={p.playerId} style={{
+                              display: "flex", alignItems: "center", gap: 10, padding: "9px 20px",
+                              borderBottom: i < arr.length - 1 ? "1px solid var(--c-border)" : "none",
+                              opacity: 0.65,
+                            }}>
+                              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--c-border-strong)", flexShrink: 0 }} />
+                              <span style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: "var(--c-text-dim)", letterSpacing: "0.04em" }}>{p.club}</span>
+                              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--c-text-dim)", minWidth: 28, textAlign: "right" }}>{p.gwPoints.toFixed(0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -189,9 +190,11 @@ export default function JoinLeaguePage() {
 
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 28 : 36, fontWeight: 900, letterSpacing: "0.08em", color: "var(--c-text)" }}>
-            CURTIS
-          </div>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 28 : 36, fontWeight: 900, letterSpacing: "0.08em", color: "var(--c-text)" }}>
+              CURTIS
+            </div>
+          </Link>
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-muted)", marginTop: 6 }}>
             Draft Football
           </div>

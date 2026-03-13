@@ -82,10 +82,11 @@ export default function ScoringMatrixPage() {
   const [draftStatus, setDraftStatus] = useState<string>("pending");
   const [isCommissioner, setIsCommissioner] = useState(false);
 
+  // Build nav dynamically — hide Draft once draft is complete (draftStatus already fetched)
   const navLinks = [
     { label: "Home",     href: "/" },
     { label: "My Team",  href: `/leagues/${leagueId}/team` },
-    { label: "Draft",    href: `/leagues/${leagueId}/draft` },
+    ...(draftStatus !== "complete" ? [{ label: "Draft", href: `/leagues/${leagueId}/draft` }] : []),
     { label: "Scoring",  href: `/leagues/${leagueId}/scoring` },
     { label: "Live",     href: `/leagues/${leagueId}/live` },
     { label: "Stats",    href: `/leagues/${leagueId}/table` },

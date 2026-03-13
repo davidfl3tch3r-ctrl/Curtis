@@ -11,10 +11,15 @@ const TEST_TEAM_NAMES = [
   "Allardyce's Hoofballers",
 ];
 
-// 15 players per team, 8 teams = 120 picks
-// Positions needed per team: 2 GK, 5 DEF, 5 MID, 3 FWD
-const SQUAD_SIZE = 15;
+// Positional composition per team (15 players total)
 const TEAM_COUNT = 8;
+const POS_ROUNDS: Array<{ pos: string; count: number }> = [
+  { pos: "GK",  count: 2 },
+  { pos: "DEF", count: 5 },
+  { pos: "MID", count: 5 },
+  { pos: "FWD", count: 3 },
+];
+const SQUAD_SIZE = POS_ROUNDS.reduce((s, r) => s + r.count, 0); // 15
 
 export async function POST() {
   const auth = await requireAdmin({ adminOnly: true });
@@ -52,32 +57,26 @@ export async function POST() {
     return NextResponse.json({ error: myTeamErr?.message ?? "Failed to create your team" }, { status: 500 });
   }
 
-  const botInserts = TEST_TEAM_NAMES.map((name, i) => ({
-    league_id: league.id,
-    user_id: null as string | null,
-    name,
-    draft_position: i + 2,
-  }));
-
-  const { data: botTeams, error: botErr } = await sc.from("teams").insert(botInserts).select("id");
+  const { data: botTeams, error: botErr } = await sc
+    .from("teams")
+    .insert(TEST_TEAM_NAMES.map((name, i) => ({
+      league_id: league.id,
+      user_id: null as string | null,
+      name,
+      draft_position: i + 2,
+    })))
+    .select("id");
 
   if (botErr || !botTeams) {
     return NextResponse.json({ error: botErr?.message ?? "Failed to create bot teams" }, { status: 500 });
   }
 
-  // All teams in draft order
   const allTeams = [myTeam, ...botTeams];
 
-  // ── 3. Fetch real players from the DB ─────────────────────────────────────
-  // Pull enough players: 8 teams × 15 picks = 120. Grab a spread of positions.
+  // ── 3. Fetch players per position ─────────────────────────────────────────
   const fetchPos = async (pos: string, limit: number) => {
-    const { data } = await sc
-      .from("players")
-      .select("id, position")
-      .eq("position", pos)
-      .eq("is_available", true)
-      .limit(limit);
-    return (data ?? []).map((p: { id: string; position: string }) => ({ id: p.id, position: p.position }));
+    const { data } = await sc.from("players").select("id").eq("position", pos).eq("is_available", true).limit(limit);
+    return (data ?? []).map((p: { id: string }) => p.id);
   };
 
   const [gks, defs, mids, fwds] = await Promise.all([
@@ -87,51 +86,48 @@ export async function POST() {
     fetchPos("FWD", TEAM_COUNT * 3 + 6),   // 30 FWDs
   ]);
 
-  const totalNeeded = TEAM_COUNT * SQUAD_SIZE;
-  const playerPool = [...gks, ...defs, ...mids, ...fwds].slice(0, totalNeeded);
+  const posPool: Record<string, string[]> = { GK: gks, DEF: defs, MID: mids, FWD: fwds };
+  const needed = { GK: TEAM_COUNT * 2, DEF: TEAM_COUNT * 5, MID: TEAM_COUNT * 5, FWD: TEAM_COUNT * 3 };
+  const missing = Object.entries(needed)
+    .filter(([pos, n]) => posPool[pos].length < n)
+    .map(([pos, n]) => `${pos}: need ${n}, have ${posPool[pos].length}`);
 
-  if (playerPool.length < totalNeeded) {
-    // Not enough real players — seed still creates league/teams but warns
+  if (missing.length) {
     await sc.from("leagues").update({ draft_status: "complete" }).eq("id", league.id);
     return NextResponse.json({
-      warning: `Only ${playerPool.length} players in DB (need ${totalNeeded}). Add real player data first. League created but squads are empty.`,
+      warning: `Not enough players in DB. ${missing.join("; ")}. Add player data first. League/teams created but squads empty.`,
       leagueId: league.id,
     });
   }
 
-  // ── 4. Snake draft assignment ─────────────────────────────────────────────
-  // Round 1: teams 0→7, Round 2: teams 7→0, etc.
+  // ── 4. Position-stratified snake draft ────────────────────────────────────
+  // Rounds are grouped by position: 2 GK rounds, 5 DEF rounds, 5 MID rounds, 3 FWD rounds.
+  // This guarantees every team gets exactly 2 GK, 5 DEF, 5 MID, 3 FWD.
   const teamPlayers: Record<string, string[]> = {};
   for (const t of allTeams) teamPlayers[t.id] = [];
 
-  for (let round = 0; round < SQUAD_SIZE; round++) {
-    const order = round % 2 === 0
-      ? allTeams
-      : [...allTeams].reverse();
-
-    for (const team of order) {
-      const player = playerPool.shift();
-      if (player) teamPlayers[team.id].push(player.id);
-    }
-  }
-
-  // ── 5. Insert draft_picks ─────────────────────────────────────────────────
   const draftPickRows: {
     league_id: string; team_id: string; player_id: string;
     round: number; pick_number: number; is_autopick: boolean;
   }[] = [];
 
   let pickNumber = 1;
-  for (let round = 0; round < SQUAD_SIZE; round++) {
-    const order = round % 2 === 0 ? allTeams : [...allTeams].reverse();
-    for (const team of order) {
-      const playerId = teamPlayers[team.id][round];
-      if (playerId) {
+  let round = 0;
+
+  for (const { pos, count } of POS_ROUNDS) {
+    const pool = posPool[pos];
+    for (let r = 0; r < count; r++) {
+      round++;
+      const order = round % 2 === 1 ? allTeams : [...allTeams].reverse();
+      for (const team of order) {
+        const playerId = pool.shift();
+        if (!playerId) continue;
+        teamPlayers[team.id].push(playerId);
         draftPickRows.push({
           league_id: league.id,
           team_id: team.id,
           player_id: playerId,
-          round: round + 1,
+          round,
           pick_number: pickNumber++,
           is_autopick: true,
         });
@@ -139,21 +135,20 @@ export async function POST() {
     }
   }
 
+  // ── 5. Insert draft_picks ─────────────────────────────────────────────────
   const { error: pickErr } = await sc.from("draft_picks").insert(draftPickRows);
   if (pickErr) {
     return NextResponse.json({ error: `draft_picks insert failed: ${pickErr.message}` }, { status: 500 });
   }
 
-  // ── 6. Insert squad_players ───────────────────────────────────────────────
-  // First 11 = starters (is_starting: true), last 4 = bench
+  // ── 6. Insert squad_players (11 starters + 4 bench) ──────────────────────
   const squadRows: {
     team_id: string; player_id: string; is_starting: boolean;
     bench_order: number | null; acquired_via: string;
   }[] = [];
 
   for (const team of allTeams) {
-    const players = teamPlayers[team.id];
-    players.forEach((playerId, i) => {
+    teamPlayers[team.id].forEach((playerId, i) => {
       const isStarting = i < 11;
       squadRows.push({
         team_id: team.id,
@@ -175,10 +170,10 @@ export async function POST() {
 
   return NextResponse.json({
     success: true,
-    message: `Test league seeded: 8 teams, ${SQUAD_SIZE} players each, draft complete`,
+    message: `Test league seeded: ${TEAM_COUNT} teams, ${SQUAD_SIZE} players each (2 GK / 5 DEF / 5 MID / 3 FWD), draft complete`,
     leagueName: "The Gaffer's League",
     leagueId: league.id,
-    teamCount: 8,
+    teamCount: TEAM_COUNT,
     playersPerTeam: SQUAD_SIZE,
   });
 }

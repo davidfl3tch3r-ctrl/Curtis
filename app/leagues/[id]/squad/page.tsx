@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavBar } from "@/components/NavBar";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { createClient } from "@/lib/supabase";
+import { useLeagueNavLinks } from "@/lib/use-league-nav-links";
 
 type Badge = { id: string; badge_key: string; badge_name: string; badge_emoji: string; earned_at: string };
 
@@ -421,18 +422,7 @@ export default function SquadPage() {
     loadBadges();
   }, []);
 
-  const navLinks = [
-    { label: "Home",     href: "/" },
-    { label: "My Team",  href: `/leagues/${id}/team` },
-    { label: "Draft",    href: `/leagues/${id}/draft` },
-    { label: "Scoring",  href: `/leagues/${id}/scoring` },
-    { label: "Live",     href: `/leagues/${id}/live` },
-    { label: "Stats",    href: `/leagues/${id}/table` },
-    { label: "Waivers",  href: `/leagues/${id}/waivers` },
-    { label: "Trades",   href: `/leagues/${id}/trades` },
-    { label: "Chat",     href: `/leagues/${id}/chat` },
-    { label: "Messages", href: `/leagues/${id}/messages` },
-  ];
+  const navLinks = useLeagueNavLinks(id);
 
   const starters = SQUAD.filter(p => p.starting);
   const bench    = SQUAD.filter(p => !p.starting).sort((a,b) => (a.bench ?? 0) - (b.bench ?? 0));
